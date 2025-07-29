@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<title>Controle de Tempo Palestrantes</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .palestrante { margin-bottom: 20px; }
+  button { margin-left: 10px; }
+</style>
+</head>
+<body>
+<h2>Controle de Tempo dos Palestrantes</h2>
+
+<div id="palestrantes-container"></div>
+
+<script>
+const palestrantes = [
+  { nome: "Palestrante 1", tempoRestante: 0, timerId: null, isRunning: false },
+  { nome: "Palestrante 2", tempoRestante: 0, timerId: null, isRunning: false },
+  { nome: "Palestrante 3", tempoRestante: 0, timerId: null, isRunning: false },
+  { nome: "Palestrante 4", tempoRestante: 0, timerId: null, isRunning: false },
+  { nome: "Palestrante 5", tempoRestante: 0, timerId: null, isRunning: false }
+];
+
+function formatTempo(segundos) {
+  const min = Math.floor(segundos / 60);
+  const seg = segundos % 60;
+  return `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
+}
+
+function atualizarDisplay(index) {
+  const div = document.getElementById(`tempo-${index}`);
+  div.textContent = formatTempo(palestrantes[index].tempoRestante);
+}
+
+function startTimer(index) {
+  if (palestrantes[index].isRunning || palestrantes[index].tempoRestante <= 0) return;
+
+  palestrantes[index].isRunning = true;
+  palestrantes[index].timerId = setInterval(() => {
+    if (palestrantes[index].tempoRestante > 0) {
+      palestrantes[index].tempoRestante--;
+      atualizarDisplay(index);
+    } else {
+      clearInterval(palestrantes[index].timerId);
+      palestrantes[index].isRunning = false;
+      alert(`${palestrantes[index].nome} acabou o tempo!`);
+    }
+  }, 1000);
+}
+
+function pauseTimer(index) {
+  clearInterval(palestrantes[index].timerId);
+  palestrantes[index].isRunning = false;
+}
+
+function setTempo(index) {
+  const input = document.getElementById(`input-${index}`);
+  let minutos = parseInt(input.value);
+  if (isNaN(minutos) || minutos < 0) minutos = 0;
+  palestrantes[index].tempoRestante = minutos * 60;
+  atualizarDisplay(index);
+}
+
+function criarInterface() {
+  const container = document.getElementById("palestrantes-container");
+  palestrantes.forEach((p, i) => {
+    const div = document.createElement("div");
+    div.classList.add("palestrante");
+    div.innerHTML = `
+      <strong>${p.nome}</strong><br/>
+      <input type="number" id="input-${i}" placeholder="Minutos" min="0" style="width: 60px;" />
+      <button onclick="setTempo(${i})">Set</button>
+      <span id="tempo-${i}">00:00</span>
+      <button onclick="startTimer(${i})">Play</button>
+      <button onclick="pauseTimer(${i})">Pause</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+criarInterface();
+</script>
+</body>
+</html>
