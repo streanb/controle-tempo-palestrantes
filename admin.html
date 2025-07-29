@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - Controle de Palestrantes</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .palestrante { margin-bottom: 20px; }
+    button { margin-left: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Controle de Tempo - Admin</h2>
+  <div id="container"></div>
+
+  <script type="module">
+    import { db } from './firebase-config.js';
+    import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const palestrantes = ["Palestrante 1", "Palestrante 2", "Palestrante 3", "Palestrante 4", "Palestrante 5"];
+    const estados = {};
+
+    function formatarTempo(seg) {
+      const m = Math.floor(seg / 60).toString().padStart(2, '0');
+      const s = (seg % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function atualizarFirebase(nome, tempo, rodando) {
+      set(ref(db, 'tempos/' + nome), {
+        tempoRestante: tempo,
+        rodando: rodando
+      });
+    }
+
+    function criarInterface() {
+      const container = document.getElementById('container');
+
+      palestrantes.forEach((nome, i) => {
+        const div = document.createElement('div');
+        div.className = 'palestrante';
+        div.innerHTML = `
+          <strong>${nome}</strong><br>
+          <input type="number" id="min-${i}" placeholder="Min" min="0" style="width: 60px;" />
+          <button onclick="setTempo(${i})">Set</button>
+          <span id="tempo-${i}">00:00</span>
+          <button onclick="play(${i})">Play</button>
+          <button onclick="pause(${i})">Pause</button>
+        `;
+        container.appendChild(div);
+
+        estados[nome] = {
+          tempo: 0,
+          rodando: false,
+          timer: null
+        };
+      });
+    }
+
+    window.setTempo = (i) => {
+      const nome = palestrantes[i];
+      const min = parseInt(document.getElementById(`min-${i}`).value) || 0;
+      estados[nome].tempo = min * 60;
+      atualizarFirebase(nome, estados[nome].tempo, false);
+      document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
+    };
+
+    window.play = (i) => {
+      const nome = palestrantes[i];
+      if (estados[nome].rodando) return;
+
+      estados[nome].rodando = true;
+      atualizarFirebase(nome, estados[nome].tempo, true);
+
+      estados[nome].timer = setInterval(() => {
+        if (estados[nome].tempo > 0) {
+          estados[nome].tempo--;
+          atualizarFirebase(nome, estados[nome].tempo, true);
+          document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
+        } else {
+          clearInterval(estados[nome].timer);
+          estados[nome].rodando = false;
+          atualizarFirebase(nome, 0, false);
+        }
+      }, 1000);
+    };
+
+    window.pause = (i) => {
+      const nome = palestrantes[i];
+      estados[nome].rodando = false;
+      clearInterval(estados[nome].timer);
+      atualizarFirebase(nome, estados[nome].tempo, false);
+    };
+
+    criarInterface();
+  </script>
+</body>
+</html>
