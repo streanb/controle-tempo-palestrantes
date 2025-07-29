@@ -1,64 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <title>Controle de Tempo - Admin</title>
+  <meta charset="UTF-8" />
+  <title>Admin - Controle de Tempo</title>
 </head>
 <body>
   <h1>Controle de Tempo - Admin</h1>
-  <div id="controls"></div>
+
+  <!-- 5 Palestrantes -->
+  <div id="palestrantes">
+    <!-- Gerado por JS -->
+  </div>
 
   <script type="module">
-    import { db } from './firebase-config.js';
-    import { ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    const container = document.getElementById('controls');
+    const firebaseConfig = {
+      apiKey: "TUA_API_KEY",
+      authDomain: "TUA_AUTH_DOMAIN",
+      databaseURL: "TUA_DATABASE_URL",
+      projectId: "TUA_PROJECT_ID",
+      storageBucket: "TUA_STORAGE_BUCKET",
+      messagingSenderId: "TUA_SENDER_ID",
+      appId: "TUA_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const timers = {};
+    const remainingTimes = {};
+
+    const container = document.getElementById("palestrantes");
 
     for (let i = 1; i <= 5; i++) {
-      const div = document.createElement('div');
+      const div = document.createElement("div");
       div.innerHTML = `
         <h3>Palestrante ${i}</h3>
-        <input type="number" id="input-${i}" placeholder="Minutos">
-        <button onclick="start(${i})">Iniciar</button>
-        <button onclick="parar(${i})">Parar</button>
-        <span id="timer-${i}">00:00</span>
+        <input type="number" id="min${i}" placeholder="Minutos" />
+        <button onclick="setTempo(${i})">Set</button>
+        <span id="tempo${i}">00:00</span>
+        <button onclick="playTimer(${i})">Play</button>
+        <button onclick="pauseTimer(${i})">Pause</button>
+        <button onclick="resetTimer(${i})">Reset</button>
+        <br><br>
       `;
       container.appendChild(div);
+      remainingTimes[i] = 0;
     }
 
-    const intervalos = {};
+    window.setTempo = function(id) {
+      const min = parseInt(document.getElementById(`min${id}`).value);
+      if (!isNaN(min)) {
+        remainingTimes[id] = min * 60;
+        updateDisplay(id);
+        saveToFirebase(id);
+      }
+    };
 
-    window.start = function (id) {
-      const minutos = parseInt(document.getElementById(`input-${id}`).value);
-      const duracao = minutos * 60;
-      const inicio = Date.now();
-
-      set(ref(db, `palestrantes/${id}`), {
-        startTime: inicio,
-        duration: duracao
-      });
-
-      atualizarTimer(id, inicio, duracao);
-      intervalos[id] = setInterval(() => {
-        atualizarTimer(id, inicio, duracao);
+    window.playTimer = function(id) {
+      if (timers[id]) return;
+      timers[id] = setInterval(() => {
+        if (remainingTimes[id] > 0) {
+          remainingTimes[id]--;
+          updateDisplay(id);
+          saveToFirebase(id);
+        } else {
+          clearInterval(timers[id]);
+          timers[id] = null;
+        }
       }, 1000);
+    };
+
+    window.pauseTimer = function(id) {
+      clearInterval(timers[id]);
+      timers[id] = null;
+    };
+
+    window.resetTimer = function(id) {
+      pauseTimer(id);
+      remainingTimes[id] = 0;
+      updateDisplay(id);
+      saveToFirebase(id);
+    };
+
+    function updateDisplay(id) {
+      const min = Math.floor(remainingTimes[id] / 60);
+      const sec = remainingTimes[id] % 60;
+      document.getElementById(`tempo${id}`).innerText = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
     }
 
-    window.parar = function (id) {
-      clearInterval(intervalos[id]);
+    function saveToFirebase(id) {
       set(ref(db, `palestrantes/${id}`), {
-        startTime: 0,
-        duration: 0
+        tempo: remainingTimes[id]
       });
-      document.getElementById(`timer-${id}`).textContent = '00:00';
-    }
-
-    function atualizarTimer(id, inicio, duracao) {
-      const agora = Date.now();
-      const restante = duracao - Math.floor((agora - inicio) / 1000);
-      const min = String(Math.floor(restante / 60)).padStart(2, '0');
-      const seg = String(restante % 60).padStart(2, '0');
-      document.getElementById(`timer-${id}`).textContent = `${min}:${seg}`;
     }
   </script>
 </body>
