@@ -4,15 +4,66 @@
   <meta charset="UTF-8" />
   <title>Admin - Controle de Palestrantes</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    .palestrante { margin-bottom: 20px; }
-    button { margin-left: 5px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      background: #f4f4f4;
+      color: #333;
+    }
+
+    h2, h3 {
+      margin-top: 0;
+    }
+
+    input[type="text"], input[type="number"] {
+      padding: 5px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .palestrante {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .nome {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .botoes-superiores {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .botoes-inferiores {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .botoes-inferiores button {
+      font-size: 16px;
+      padding: 10px 20px;
+    }
   </style>
 </head>
 <body>
   <h2>Administração do Tempo</h2>
 
-  <label>Título Global:</label>
+  <label><strong>Título Global:</strong></label>
   <input type="text" id="titulo" placeholder="Título do evento" style="width: 300px;" />
   <button onclick="atualizarTitulo()">Atualizar Título</button>
 
@@ -41,7 +92,7 @@
 
     function atualizarTitulo() {
       const titulo = document.getElementById('titulo').value;
-      set(ref(db, 'titulo'), titulo);
+      set(ref(db, 'titulo'), titulo); // <-- já funcionava, só garanti que está como no modelo dos nomes
     }
 
     function criarInterface() {
@@ -52,14 +103,20 @@
         const div = document.createElement('div');
         div.className = 'palestrante';
         div.innerHTML = `
-          <input type="text" id="nome-${i}" value="${nome}" />
-          <button onclick="atualizarNome(${i})">Atualizar Nome</button>
-          <input type="number" id="min-${i}" placeholder="Min" min="0" style="width: 60px;" />
-          <button onclick="setTempo(${i})">Set</button>
-          <span id="tempo-${i}">00:00</span>
-          <button onclick="play(${i})">Play</button>
-          <button onclick="pause(${i})">Pause</button>
-          <button onclick="removerPalestrante(${i})">Remover</button>
+          <div class="nome">
+            <input type="text" id="nome-${i}" value="${nome}" style="font-weight: bold; font-size: 16px;" />
+          </div>
+          <div class="botoes-superiores">
+            <button onclick="atualizarNome(${i})">Atualizar Nome</button>
+            <input type="number" id="min-${i}" placeholder="Min" min="0" style="width: 60px;" />
+            <button onclick="setTempo(${i})">Definir Tempo</button>
+            <span id="tempo-${i}">00:00</span>
+            <button onclick="removerPalestrante(${i})">Remover</button>
+          </div>
+          <div class="botoes-inferiores">
+            <button onclick="play(${i})">▶ Play</button>
+            <button onclick="pause(${i})">⏸ Pause</button>
+          </div>
         `;
         container.appendChild(div);
       });
@@ -80,26 +137,24 @@
         return;
       }
 
-      // Atualiza array local
+      // Atualiza local
       palestrantes[i] = novoNome;
 
-      // Atualiza estado de tempo e rodando do palestrante antigo para o novo
+      // Atualiza estado
       estados[novoNome] = estados[nomeAntigo];
       delete estados[nomeAntigo];
 
-      // Atualiza Firebase: remove tempo antigo e cria tempo novo
+      // Atualiza Firebase
       set(ref(db, 'tempos/' + nomeAntigo), null);
       set(ref(db, 'tempos/' + novoNome), {
         tempoRestante: estados[novoNome].tempo,
         rodando: estados[novoNome].rodando
       });
 
-      // Atualiza nó nomes no Firebase para público refletir nomes atualizados
+      // Atualiza lista de nomes
       const nomesObj = {};
       palestrantes.forEach(n => nomesObj[n] = n);
       set(ref(db, 'nomes'), nomesObj);
-
-      alert(`Nome atualizado de "${nomeAntigo}" para "${novoNome}"`);
 
       criarInterface();
     };
@@ -140,8 +195,15 @@
     };
 
     window.adicionarPalestrante = () => {
-      palestrantes.push(`Palestrante ${palestrantes.length + 1}`);
-      estados[`Palestrante ${palestrantes.length}`] = { tempo: 0, rodando: false, timer: null };
+      const novoNome = `Palestrante ${palestrantes.length + 1}`;
+      palestrantes.push(novoNome);
+      estados[novoNome] = { tempo: 0, rodando: false, timer: null };
+
+      // Atualiza nomes no Firebase
+      const nomesObj = {};
+      palestrantes.forEach(n => nomesObj[n] = n);
+      set(ref(db, 'nomes'), nomesObj);
+
       criarInterface();
     };
 
@@ -149,7 +211,13 @@
       const nome = palestrantes[i];
       palestrantes.splice(i, 1);
       delete estados[nome];
-      set(ref(db, 'tempos/' + nome), null); // remove do firebase
+      set(ref(db, 'tempos/' + nome), null);
+
+      // Atualiza lista de nomes
+      const nomesObj = {};
+      palestrantes.forEach(n => nomesObj[n] = n);
+      set(ref(db, 'nomes'), nomesObj);
+
       criarInterface();
     };
 
