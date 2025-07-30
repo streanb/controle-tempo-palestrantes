@@ -1,7 +1,7 @@
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDySoLa1TbiD5-oVgg5oWrOTOp-l8x8qVE",
   authDomain: "controlo-tempo.firebaseapp.com",
-  databaseURL: "https://controlo-tempo.firebaseio.com", // CORRIGIDO AQUI
+  databaseURL: "https://controlo-tempo-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "controlo-tempo",
   storageBucket: "controlo-tempo.appspot.com",
   messagingSenderId: "727603507122",
