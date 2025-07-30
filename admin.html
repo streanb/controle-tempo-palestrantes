@@ -1,105 +1,89 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin - Controle de Tempo</title>
-</head>
-<body>
-  <h1>Controle de Tempo - Admin</h1>
-
-  <!-- 5 Palestrantes -->
-  <div id="palestrantes">
-    <!-- Gerado por JS -->
-  </div>
-
+  <title>Controlo de Palestrantes (Admin)</title>
   <script type="module">
-    
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-
-
-    const firebaseConfig = {
-      apiKey: "TUA_API_KEY",
-      authDomain: "TUA_AUTH_DOMAIN",
-      databaseURL: "TUA_DATABASE_URL",
-      projectId: "TUA_PROJECT_ID",
-      storageBucket: "TUA_STORAGE_BUCKET",
-      messagingSenderId: "TUA_SENDER_ID",
-      appId: "TUA_APP_ID"
-    };
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { firebaseConfig } from './firebase-config.js';
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const timers = {};
-    const remainingTimes = {};
+    let current = null;
+    let remaining = 0;
+    let interval = null;
 
-    const container = document.getElementById("palestrantes");
-
-    for (let i = 1; i <= 5; i++) {
-      const div = document.createElement("div");
-      div.innerHTML = `
-        <h3>Palestrante ${i}</h3>
-        <input type="number" id="min${i}" placeholder="Minutos" />
-        <button onclick="setTempo(${i})">Set</button>
-        <span id="tempo${i}">00:00</span>
-        <button onclick="playTimer(${i})">Play</button>
-        <button onclick="pauseTimer(${i})">Pause</button>
-        <button onclick="resetTimer(${i})">Reset</button>
-        <br><br>
-      `;
-      container.appendChild(div);
-      remainingTimes[i] = 0;
+    function updateDisplay() {
+      document.getElementById('display').innerText = `${current}: ${remaining}s`;
+      set(ref(db, 'tempo'), { palestrante: current, tempo: remaining });
     }
 
-    window.setTempo = function(id) {
-      const min = parseInt(document.getElementById(`min${id}`).value);
-      if (!isNaN(min)) {
-        remainingTimes[id] = min * 60;
-        updateDisplay(id);
-        saveToFirebase(id);
-      }
-    };
-
-    window.playTimer = function(id) {
-      if (timers[id]) return;
-      timers[id] = setInterval(() => {
-        if (remainingTimes[id] > 0) {
-          remainingTimes[id]--;
-          updateDisplay(id);
-          saveToFirebase(id);
+    window.startTimer = (p, tempo) => {
+      clearInterval(interval);
+      current = p;
+      remaining = tempo;
+      updateDisplay();
+      interval = setInterval(() => {
+        if (remaining > 0) {
+          remaining--;
+          updateDisplay();
         } else {
-          clearInterval(timers[id]);
-          timers[id] = null;
+          clearInterval(interval);
         }
       }, 1000);
     };
 
-    window.pauseTimer = function(id) {
-      clearInterval(timers[id]);
-      timers[id] = null;
+    window.pauseTimer = () => clearInterval(interval);
+    window.resetTimer = () => {
+      clearInterval(interval);
+      remaining = 0;
+      updateDisplay();
     };
-
-    window.resetTimer = function(id) {
-      pauseTimer(id);
-      remainingTimes[id] = 0;
-      updateDisplay(id);
-      saveToFirebase(id);
-    };
-
-    function updateDisplay(id) {
-      const min = Math.floor(remainingTimes[id] / 60);
-      const sec = remainingTimes[id] % 60;
-      document.getElementById(`tempo${id}`).innerText = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-    }
-
-    function saveToFirebase(id) {
-      set(ref(db, `palestrantes/${id}`), {
-        tempo: remainingTimes[id]
-      });
-    }
   </script>
+</head>
+<body>
+  <h1>Admin: Controlar Tempo</h1>
+  <select id="palestrante">
+    <option value="P1">Palestrante 1</option>
+    <option value="P2">Palestrante 2</option>
+    <option value="P3">Palestrante 3</option>
+    <option value="P4">Palestrante 4</option>
+    <option value="P5">Palestrante 5</option>
+  </select>
+  <input id="tempo" type="number" value="60" /> segundos
+  <button onclick="startTimer(document.getElementById('palestrante').value, parseInt(document.getElementById('tempo').value))">Iniciar</button>
+  <button onclick="pauseTimer()">Pausar</button>
+  <button onclick="resetTimer()">Reiniciar</button>
+  <div id="display" style="margin-top:20px; font-size:2em;"></div>
+</body>
+</html>
+
+
+// ===== publico.html =====
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tempo dos Palestrantes</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { firebaseConfig } from './firebase-config.js';
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    onValue(ref(db, 'tempo'), (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        document.getElementById('tempoDisplay').innerText = `${data.palestrante}: ${data.tempo}s`;
+      }
+    });
+  </script>
+</head>
+<body>
+  <h1>Tempo Atual</h1>
+  <div id="tempoDisplay" style="font-size:3em; color:green;"></div>
 </body>
 </html>
