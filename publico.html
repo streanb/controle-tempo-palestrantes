@@ -4,21 +4,63 @@
   <meta charset="UTF-8" />
   <title>Tempos ao Vivo</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    .palestrante { margin-bottom: 15px; font-size: 1.5em; }
-    h2 { margin-bottom: 30px; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f9f9f9;
+      padding: 40px;
+      color: #333;
+    }
+
+    h2 {
+      font-size: 2.5rem;
+      margin-bottom: 40px;
+      text-align: center;
+      color: #222;
+    }
+
+    .grade {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .cartao {
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    .nome {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .tempo {
+      font-size: 2.5rem;
+      color: #007BFF;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <h2 id="titulo">Tempos dos Palestrantes</h2>
-  <div id="container"></div>
+  <div class="grade" id="container"></div>
 
   <script type="module">
     import { db } from './firebase-config.js';
     import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    const tituloEl = document.getElementById('titulo');
     const container = document.getElementById('container');
+    const tituloEl = document.getElementById('titulo');
+
+    let dadosTempos = {};
+    let nomesCustomizados = {};
+    let titulo = "";
 
     function formatarTempo(seg) {
       const m = Math.floor(seg / 60).toString().padStart(2, '0');
@@ -26,47 +68,45 @@
       return `${m}:${s}`;
     }
 
-    let nomesPersonalizados = {};
-
-    // Atualiza o título em tempo real
-    const tituloRef = ref(db, 'titulo');
-    onValue(tituloRef, (snapshot) => {
-      const val = snapshot.val();
-      if (val) tituloEl.textContent = val;
-    });
-
-    // Ouve os nomes personalizados
-    const nomesRef = ref(db, 'nomes');
-    onValue(nomesRef, (snapshot) => {
-      const val = snapshot.val();
-      if (val) {
-        nomesPersonalizados = val;
-        atualizarTempos();  // re-renderiza quando os nomes mudam
+    function atualizarEcrã() {
+      // Atualiza título
+      if (titulo) {
+        tituloEl.textContent = titulo;
       }
-    });
 
-    // Ouve os tempos dos palestrantes
-    const temposRef = ref(db, 'tempos');
-    let dadosTempos = {};
-    onValue(temposRef, (snapshot) => {
-      const val = snapshot.val();
-      if (val) {
-        dadosTempos = val;
-        atualizarTempos();
-      }
-    });
-
-    function atualizarTempos() {
+      // Atualiza tempos
       container.innerHTML = '';
-      Object.entries(dadosTempos).forEach(([nomeOriginal, obj]) => {
-        const nomeMostrado = nomesPersonalizados[nomeOriginal] || nomeOriginal;
+      Object.entries(dadosTempos).forEach(([nomeOriginal, dados]) => {
+        const nomeExibir = nomesCustomizados[nomeOriginal] || nomeOriginal;
+        const tempo = dados?.tempoRestante ?? 0;
+
         const div = document.createElement('div');
-        div.className = 'palestrante';
-        const tempo = obj?.tempoRestante ?? 0;
-        div.textContent = `${nomeMostrado}: ${formatarTempo(tempo)}`;
+        div.className = 'cartao';
+        div.innerHTML = `
+          <div class="nome">${nomeExibir}</div>
+          <div class="tempo">${formatarTempo(tempo)}</div>
+        `;
         container.appendChild(div);
       });
     }
+
+    // Listener para tempos
+    onValue(ref(db, 'tempos'), (snapshot) => {
+      dadosTempos = snapshot.val() || {};
+      atualizarEcrã();
+    });
+
+    // Listener para nomes personalizados
+    onValue(ref(db, 'nomes'), (snapshot) => {
+      nomesCustomizados = snapshot.val() || {};
+      atualizarEcrã();
+    });
+
+    // Listener para título
+    onValue(ref(db, 'titulo'), (snapshot) => {
+      titulo = snapshot.val() || "Tempos dos Palestrantes";
+      atualizarEcrã();
+    });
   </script>
 </body>
 </html>
