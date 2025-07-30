@@ -25,15 +25,14 @@
     import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     let palestrantes = [];
-    const estados = {};
 
     function formatarTempo(seg) {
       const m = Math.floor(seg / 60).toString().padStart(2, '0');
       const s = (seg % 60).toString().padStart(2, '0');
-      return `${m}:${s}`;
+      return ${m}:${s};
     }
 
-    function atualizarFirebaseTempo(nome, tempo, rodando) {
+    function atualizarFirebase(nome, tempo, rodando) {
       set(ref(db, 'tempos/' + nome), {
         tempoRestante: tempo,
         rodando: rodando
@@ -45,30 +44,14 @@
       set(ref(db, 'titulo'), titulo);
     }
 
-    // Salva a lista de palestrantes no Firebase
-    function salvarPalestrantesNoFirebase() {
-      set(ref(db, 'palestrantes'), palestrantes);
-    }
-
-    // Salva os nomes personalizados no Firebase (objeto { nomeAntigo: nomeNovo })
-    function salvarNomesNoFirebase() {
-      const nomesObj = {};
-      palestrantes.forEach(nome => {
-        nomesObj[nome] = nome; // Pode ajustar para nomes customizados diferentes
-      });
-      set(ref(db, 'nomes'), nomesObj);
-    }
-
     function criarInterface() {
       const container = document.getElementById('container');
       container.innerHTML = '';
 
       palestrantes.forEach((nome, i) => {
-        if (!estados[nome]) estados[nome] = { tempo: 0, rodando: false, timer: null };
-
         const div = document.createElement('div');
         div.className = 'palestrante';
-        div.innerHTML = `
+        div.innerHTML = 
           <input type="text" id="nome-${i}" value="${nome}" oninput="editarNome(${i})" />
           <input type="number" id="min-${i}" placeholder="Min" min="0" style="width: 60px;" />
           <button onclick="setTempo(${i})">Set</button>
@@ -76,43 +59,21 @@
           <button onclick="play(${i})">Play</button>
           <button onclick="pause(${i})">Pause</button>
           <button onclick="removerPalestrante(${i})">Remover</button>
-        `;
+        ;
         container.appendChild(div);
-
-        // Atualiza display do tempo se houver no estado
-        document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
       });
     }
 
     function editarNome(i) {
-      const input = document.getElementById(`nome-${i}`);
-      const nomeAntigo = palestrantes[i];
-      const novoNome = input.value.trim() || nomeAntigo;
-
-      if (novoNome === nomeAntigo) return; // sem mudança
-
-      // Atualiza array
-      palestrantes[i] = novoNome;
-
-      // Atualiza estados para o novo nome, mantendo o tempo e rodando
-      estados[novoNome] = estados[nomeAntigo];
-      delete estados[nomeAntigo];
-
-      // Atualiza Firebase: remove tempo antigo, cria tempo novo
-      set(ref(db, 'tempos/' + nomeAntigo), null);
-      atualizarFirebaseTempo(novoNome, estados[novoNome].tempo, estados[novoNome].rodando);
-
-      salvarPalestrantesNoFirebase();
-      salvarNomesNoFirebase();
-      criarInterface();
+      palestrantes[i] = document.getElementById(nome-${i}).value;
     }
 
     window.setTempo = (i) => {
       const nome = palestrantes[i];
-      const min = parseInt(document.getElementById(`min-${i}`).value) || 0;
+      const min = parseInt(document.getElementById(min-${i}).value) || 0;
       estados[nome].tempo = min * 60;
-      atualizarFirebaseTempo(nome, estados[nome].tempo, false);
-      document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
+      atualizarFirebase(nome, estados[nome].tempo, false);
+      document.getElementById(tempo-${i}).textContent = formatarTempo(estados[nome].tempo);
     };
 
     window.play = (i) => {
@@ -120,17 +81,17 @@
       if (estados[nome].rodando) return;
 
       estados[nome].rodando = true;
-      atualizarFirebaseTempo(nome, estados[nome].tempo, true);
+      atualizarFirebase(nome, estados[nome].tempo, true);
 
       estados[nome].timer = setInterval(() => {
         if (estados[nome].tempo > 0) {
           estados[nome].tempo--;
-          atualizarFirebaseTempo(nome, estados[nome].tempo, true);
-          document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
+          atualizarFirebase(nome, estados[nome].tempo, true);
+          document.getElementById(tempo-${i}).textContent = formatarTempo(estados[nome].tempo);
         } else {
           clearInterval(estados[nome].timer);
           estados[nome].rodando = false;
-          atualizarFirebaseTempo(nome, 0, false);
+          atualizarFirebase(nome, 0, false);
         }
       }, 1000);
     };
@@ -139,52 +100,30 @@
       const nome = palestrantes[i];
       estados[nome].rodando = false;
       clearInterval(estados[nome].timer);
-      atualizarFirebaseTempo(nome, estados[nome].tempo, false);
+      atualizarFirebase(nome, estados[nome].tempo, false);
     };
 
     window.adicionarPalestrante = () => {
-      const novoNome = `Palestrante ${palestrantes.length + 1}`;
-      palestrantes.push(novoNome);
-      estados[novoNome] = { tempo: 0, rodando: false, timer: null };
-      salvarPalestrantesNoFirebase();
-      salvarNomesNoFirebase();
+      palestrantes.push(Palestrante ${palestrantes.length + 1});
+      estados[Palestrante ${palestrantes.length}] = { tempo: 0, rodando: false, timer: null };
       criarInterface();
     };
 
     window.removerPalestrante = (i) => {
       const nome = palestrantes[i];
       palestrantes.splice(i, 1);
-      if (estados[nome]) {
-        clearInterval(estados[nome].timer);
-        delete estados[nome];
-      }
-      set(ref(db, 'tempos/' + nome), null); // remove do Firebase
-      salvarPalestrantesNoFirebase();
-      salvarNomesNoFirebase();
+      delete estados[nome];
+      set(ref(db, 'tempos/' + nome), null); // remove do firebase
       criarInterface();
     };
 
-    // Inicializa título do input lendo do Firebase
-    onValue(ref(db, 'titulo'), (snapshot) => {
-      const tituloFirebase = snapshot.val() || '';
-      document.getElementById('titulo').value = tituloFirebase;
+    // Inicialização
+    const estados = {};
+    palestrantes = ["Palestrante 1", "Palestrante 2", "Palestrante 3", "Palestrante 4", "Palestrante 5"];
+    palestrantes.forEach(nome => {
+      estados[nome] = { tempo: 0, rodando: false, timer: null };
     });
-
-    // Inicializa palestrantes lendo do Firebase
-    onValue(ref(db, 'palestrantes'), (snapshot) => {
-      palestrantes = snapshot.val() || [];
-      // Sincroniza estados para os palestrantes novos
-      palestrantes.forEach(nome => {
-        if (!estados[nome]) estados[nome] = { tempo: 0, rodando: false, timer: null };
-      });
-      criarInterface();
-    });
-
-    // Inicializa nomes personalizados (atualmente só sincroniza, você pode usar para customizar se quiser)
-    onValue(ref(db, 'nomes'), (snapshot) => {
-      // Você pode querer atualizar inputs para nomes personalizados aqui, se quiser
-      // Agora só mantemos os nomes do Firebase sincronizados
-    });
+    criarInterface();
   </script>
 </body>
 </html>
