@@ -26,6 +26,8 @@
       return `${m}:${s}`;
     }
 
+    let nomesPersonalizados = {};
+
     // Atualiza o título em tempo real
     const tituloRef = ref(db, 'titulo');
     onValue(tituloRef, (snapshot) => {
@@ -33,22 +35,38 @@
       if (val) tituloEl.textContent = val;
     });
 
-    // Atualiza a lista de palestrantes e seus tempos
-    const temposRef = ref(db, 'tempos');
-    onValue(temposRef, (snapshot) => {
-      const data = snapshot.val();
-      container.innerHTML = ''; // limpa para recriar
-
-      if (data) {
-        Object.entries(data).forEach(([nome, obj]) => {
-          const div = document.createElement('div');
-          div.className = 'palestrante';
-          const tempo = obj?.tempoRestante ?? 0;
-          div.textContent = `${nome}: ${formatarTempo(tempo)}`;
-          container.appendChild(div);
-        });
+    // Ouve os nomes personalizados
+    const nomesRef = ref(db, 'nomes');
+    onValue(nomesRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        nomesPersonalizados = val;
+        atualizarTempos();  // re-renderiza quando os nomes mudam
       }
     });
+
+    // Ouve os tempos dos palestrantes
+    const temposRef = ref(db, 'tempos');
+    let dadosTempos = {};
+    onValue(temposRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        dadosTempos = val;
+        atualizarTempos();
+      }
+    });
+
+    function atualizarTempos() {
+      container.innerHTML = '';
+      Object.entries(dadosTempos).forEach(([nomeOriginal, obj]) => {
+        const nomeMostrado = nomesPersonalizados[nomeOriginal] || nomeOriginal;
+        const div = document.createElement('div');
+        div.className = 'palestrante';
+        const tempo = obj?.tempoRestante ?? 0;
+        div.textContent = `${nomeMostrado}: ${formatarTempo(tempo)}`;
+        container.appendChild(div);
+      });
+    }
   </script>
 </body>
 </html>
