@@ -29,7 +29,7 @@
     function formatarTempo(seg) {
       const m = Math.floor(seg / 60).toString().padStart(2, '0');
       const s = (seg % 60).toString().padStart(2, '0');
-      return ${m}:${s};
+      return `${m}:${s}`;
     }
 
     function atualizarFirebase(nome, tempo, rodando) {
@@ -51,7 +51,7 @@
       palestrantes.forEach((nome, i) => {
         const div = document.createElement('div');
         div.className = 'palestrante';
-        div.innerHTML = 
+        div.innerHTML = `
           <input type="text" id="nome-${i}" value="${nome}" oninput="editarNome(${i})" />
           <input type="number" id="min-${i}" placeholder="Min" min="0" style="width: 60px;" />
           <button onclick="setTempo(${i})">Set</button>
@@ -59,21 +59,21 @@
           <button onclick="play(${i})">Play</button>
           <button onclick="pause(${i})">Pause</button>
           <button onclick="removerPalestrante(${i})">Remover</button>
-        ;
+        `;
         container.appendChild(div);
       });
     }
 
     function editarNome(i) {
-      palestrantes[i] = document.getElementById(nome-${i}).value;
+      palestrantes[i] = document.getElementById(`nome-${i}`).value;
     }
 
     window.setTempo = (i) => {
       const nome = palestrantes[i];
-      const min = parseInt(document.getElementById(min-${i}).value) || 0;
+      const min = parseInt(document.getElementById(`min-${i}`).value) || 0;
       estados[nome].tempo = min * 60;
       atualizarFirebase(nome, estados[nome].tempo, false);
-      document.getElementById(tempo-${i}).textContent = formatarTempo(estados[nome].tempo);
+      document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
     };
 
     window.play = (i) => {
@@ -87,7 +87,7 @@
         if (estados[nome].tempo > 0) {
           estados[nome].tempo--;
           atualizarFirebase(nome, estados[nome].tempo, true);
-          document.getElementById(tempo-${i}).textContent = formatarTempo(estados[nome].tempo);
+          document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
         } else {
           clearInterval(estados[nome].timer);
           estados[nome].rodando = false;
@@ -104,8 +104,8 @@
     };
 
     window.adicionarPalestrante = () => {
-      palestrantes.push(Palestrante ${palestrantes.length + 1});
-      estados[Palestrante ${palestrantes.length}] = { tempo: 0, rodando: false, timer: null };
+      palestrantes.push(`Palestrante ${palestrantes.length + 1}`);
+      estados[`Palestrante ${palestrantes.length}`] = { tempo: 0, rodando: false, timer: null };
       criarInterface();
     };
 
