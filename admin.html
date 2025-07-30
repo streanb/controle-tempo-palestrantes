@@ -52,7 +52,8 @@
         const div = document.createElement('div');
         div.className = 'palestrante';
         div.innerHTML = `
-          <input type="text" id="nome-${i}" value="${nome}" oninput="editarNome(${i})" />
+          <input type="text" id="nome-${i}" value="${nome}" />
+          <button onclick="atualizarNome(${i})">Atualizar Nome</button>
           <input type="number" id="min-${i}" placeholder="Min" min="0" style="width: 60px;" />
           <button onclick="setTempo(${i})">Set</button>
           <span id="tempo-${i}">00:00</span>
@@ -64,17 +65,44 @@
       });
     }
 
-    function editarNome(i) {
-      palestrantes[i] = document.getElementById(`nome-${i}`).value;
-  salvarNomesNoFirebase();
-    }
-    function salvarNomesNoFirebase() {
-  const nomesObj = {};
-  palestrantes.forEach(nome => {
-    nomesObj[nome] = nome;  // Aqui você pode ajustar para nomes personalizados diferentes se quiser
-  });
-  set(ref(db, 'nomes'), nomesObj);
-}
+    window.atualizarNome = (i) => {
+      const inputNome = document.getElementById(`nome-${i}`);
+      const nomeAntigo = palestrantes[i];
+      const novoNome = inputNome.value.trim();
+
+      if (!novoNome) {
+        alert('O nome não pode estar vazio!');
+        inputNome.value = nomeAntigo;
+        return;
+      }
+      if (novoNome === nomeAntigo) {
+        alert('O nome não foi alterado.');
+        return;
+      }
+
+      // Atualiza array local
+      palestrantes[i] = novoNome;
+
+      // Atualiza estado de tempo e rodando do palestrante antigo para o novo
+      estados[novoNome] = estados[nomeAntigo];
+      delete estados[nomeAntigo];
+
+      // Atualiza Firebase: remove tempo antigo e cria tempo novo
+      set(ref(db, 'tempos/' + nomeAntigo), null);
+      set(ref(db, 'tempos/' + novoNome), {
+        tempoRestante: estados[novoNome].tempo,
+        rodando: estados[novoNome].rodando
+      });
+
+      // Atualiza nó nomes no Firebase para público refletir nomes atualizados
+      const nomesObj = {};
+      palestrantes.forEach(n => nomesObj[n] = n);
+      set(ref(db, 'nomes'), nomesObj);
+
+      alert(`Nome atualizado de "${nomeAntigo}" para "${novoNome}"`);
+
+      criarInterface();
+    };
 
     window.setTempo = (i) => {
       const nome = palestrantes[i];
