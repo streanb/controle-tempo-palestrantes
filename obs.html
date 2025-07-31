@@ -8,84 +8,49 @@
       font-family: 'Segoe UI', sans-serif;
       background-color: #111;
       color: #eee;
+      margin: 0;
       padding: 40px;
     }
 
-    h2 {
-      text-align: center;
-      color: #fff;
-      font-size: 2.5rem;
-      margin-bottom: 30px;
-    }
-
     .grade {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      max-width: 1400px;
-      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 20px;
+      max-width: 600px;
+      margin: 0;
     }
 
     .cartao {
       background-color: #222;
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      border-radius: 12px;
+      padding: 20px 24px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
 
     .nome {
-      font-size: 1.4rem;
-      font-weight: 600;
-      margin-bottom: 12px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 8px;
     }
 
     .tempo {
-      font-size: 3rem;
+      font-size: 2.8rem;
       font-weight: bold;
       color: #00d4ff;
-      margin-bottom: 20px;
     }
-
-    .botoes {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .botoes button {
-      width: 160px;
-      padding: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .play { background-color: #28a745; color: white; }
-    .pause { background-color: #ffc107; color: black; }
-    .reset { background-color: #dc3545; color: white; }
-
-    .play:hover { background-color: #218838; }
-    .pause:hover { background-color: #e0a800; }
-    .reset:hover { background-color: #c82333; }
   </style>
 </head>
 <body>
-  <h2>Controlo OBS</h2>
   <div class="grade" id="container"></div>
 
   <script type="module">
     import { db } from './firebase-config.js';
     import {
       ref,
-      onValue,
-      set
+      onValue
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const container = document.getElementById('container');
@@ -104,18 +69,12 @@
       Object.entries(dadosTempos).forEach(([nomeOriginal, dados]) => {
         const nomeExibir = nomesCustomizados[nomeOriginal] || nomeOriginal;
         const tempo = dados?.tempoRestante ?? 0;
-        const rodando = dados?.rodando ?? false;
 
         const div = document.createElement('div');
         div.className = 'cartao';
         div.innerHTML = `
           <div class="nome">${nomeExibir}</div>
           <div class="tempo">${formatarTempo(tempo)}</div>
-          <div class="botoes">
-            <button class="play" onclick="play('${nomeOriginal}')">Iniciar</button>
-            <button class="pause" onclick="pause('${nomeOriginal}')">Pausar</button>
-            <button class="reset" onclick="reset('${nomeOriginal}')">Reset</button>
-          </div>
         `;
         container.appendChild(div);
       });
@@ -130,30 +89,6 @@
       nomesCustomizados = snapshot.val() || {};
       atualizarEcrã();
     });
-
-    window.play = (nome) => {
-      const dados = dadosTempos[nome];
-      set(ref(db, 'tempos/' + nome), {
-        tempoRestante: dados.tempoRestante,
-        rodando: true
-      });
-    };
-
-    window.pause = (nome) => {
-      const dados = dadosTempos[nome];
-      set(ref(db, 'tempos/' + nome), {
-        tempoRestante: dados.tempoRestante,
-        rodando: false
-      });
-    };
-
-    window.reset = (nome) => {
-      const dados = dadosTempos[nome];
-      set(ref(db, 'tempos/' + nome), {
-        tempoRestante: dados.tempoInicial ?? 0,
-        rodando: false
-      });
-    };
   </script>
 </body>
 </html>
