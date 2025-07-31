@@ -11,13 +11,13 @@
       background: #f5f5f5;
     }
 
-    h2, h3 {
+    h2 {
       margin-top: 0;
     }
 
     #grade {
       display: grid;
-      grid-template-columns: repeat(3, 1fr); /* 3 colunas → até 12 palestrantes sem scroll */
+      grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       margin-top: 20px;
     }
@@ -30,7 +30,7 @@
     }
 
     .cartao input[type="text"] {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: bold;
       width: 100%;
       margin-bottom: 8px;
@@ -69,12 +69,6 @@
       margin-bottom: 20px;
     }
 
-    .top-controls input[type="text"] {
-      font-size: 16px;
-      padding: 6px;
-      width: 250px;
-    }
-
     .top-controls button {
       padding: 6px 12px;
     }
@@ -84,8 +78,6 @@
   <h2>Administração do Tempo</h2>
 
   <div class="top-controls">
-    <input type="text" id="titulo" placeholder="Título do evento">
-    <button onclick="atualizarTitulo()">Atualizar Título</button>
     <button onclick="adicionarPalestrante()">+ Adicionar Palestrante</button>
     <button onclick="resetarTudo()">🔄 Reset</button>
   </div>
@@ -97,7 +89,6 @@
     import {
       ref,
       set,
-      onValue,
       remove
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
@@ -119,11 +110,6 @@
 
     function atualizarNomeFirebase(nomeOriginal, novoNome) {
       set(ref(db, 'nomes/' + nomeOriginal), novoNome);
-    }
-
-    function atualizarTitulo() {
-      const valor = document.getElementById('titulo').value;
-      set(ref(db, 'titulo'), valor);
     }
 
     function criarInterface() {
@@ -217,7 +203,6 @@
       if (confirm("Tem certeza que deseja limpar a visualização pública?")) {
         remove(ref(db, 'tempos'));
         remove(ref(db, 'nomes'));
-        remove(ref(db, 'titulo'));
         palestrantes = [];
         document.getElementById('grade').innerHTML = '';
       }
