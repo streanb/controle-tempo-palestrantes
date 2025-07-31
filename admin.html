@@ -7,6 +7,7 @@
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
+      margin: 0;
       background: #f5f5f5;
     }
 
@@ -35,10 +36,11 @@
       margin-bottom: 8px;
     }
 
-    .botoes-cima {
+    .botoes-cima,
+    .botoes-baixo {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-top: 10px;
     }
 
     .botoes-cima input[type="number"] {
@@ -48,51 +50,24 @@
     .botoes-cima button,
     .botoes-baixo button,
     .top-controls button {
-      padding: 6px 10px;
-      font-size: 13px;
+      padding: 6px 12px;
+      font-size: 14px;
+      background: #e0e0e0;
       border: none;
       border-radius: 6px;
-      background-color: #d0e7ff;
-      color: #333;
       cursor: pointer;
-    }
-
-    .botoes-baixo {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 10px;
     }
 
     .top-controls {
       display: flex;
-      flex-wrap: wrap;
       gap: 10px;
+      flex-wrap: wrap;
       margin-bottom: 20px;
-    }
-
-    .top-controls input[type="text"],
-    #notaFinal {
-      font-size: 16px;
-      padding: 6px;
-      width: 300px;
-    }
-
-    #notaFinal {
-      margin-top: 40px;
-      display: block;
-    }
-
-    textarea {
-      width: 100%;
-      height: 100px;
-      font-size: 16px;
-      padding: 10px;
-      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <h2>Administração do Tempo - Partidos</h2>
+  <h2>Administração de Tempos</h2>
 
   <div class="top-controls">
     <button onclick="adicionarPartido()">+ Adicionar Partido</button>
@@ -100,9 +75,6 @@
   </div>
 
   <div id="grade"></div>
-
-  <label for="notaFinal">Nota final para o público:</label>
-  <textarea id="notaFinal" placeholder="Escreva aqui uma nota que será visível no final da página pública..." oninput="atualizarNota()"></textarea>
 
   <script type="module">
     import { db } from './firebase-config.js';
@@ -133,9 +105,8 @@
       set(ref(db, 'nomes/' + nomeOriginal), novoNome);
     }
 
-    function atualizarNota() {
-      const nota = document.getElementById('notaFinal').value;
-      set(ref(db, 'notaFinal'), nota);
+    function atualizarTitulo(titulo) {
+      set(ref(db, 'titulo'), titulo);
     }
 
     function criarInterface() {
@@ -145,17 +116,18 @@
       partidos.forEach((nome, i) => {
         const div = document.createElement('div');
         div.className = 'cartao';
+        const label = i === 0 ? ' (Título)' : '';
         div.innerHTML = `
           <input type="text" id="nome-${i}" value="${nome}" onchange="window.salvarNome(${i})" />
           <div class="botoes-cima">
             <input type="number" id="min-${i}" placeholder="Min">
-            <button onclick="window.setTempo(${i})">Definir Tempo</button>
+            <button onclick="window.setTempo(${i})">Tempo</button>
             <button onclick="window.removerPartido(${i})">Remover</button>
           </div>
           <div class="botoes-baixo">
-            <button onclick="window.play(${i})">Play</button>
-            <button onclick="window.pause(${i})">Pause</button>
-            <button onclick="window.reiniciar(${i})">Reiniciar</button>
+            <button onclick="window.play(${i})">Iniciar</button>
+            <button onclick="window.pause(${i})">Pausar</button>
+            <button onclick="window.reset(${i})">Reiniciar</button>
           </div>
           <div style="margin-top:8px; text-align:center;">
             <span id="tempo-${i}">00:00</span>
@@ -170,6 +142,12 @@
       const nomeAntigo = partidos[i];
       partidos[i] = novoNome;
       atualizarNomeFirebase(nomeAntigo, novoNome);
+
+      // se for o primeiro, atualizar o título
+      if (i === 0) {
+        atualizarTitulo(novoNome);
+      }
+
       estados[novoNome] = estados[nomeAntigo];
       delete estados[nomeAntigo];
       criarInterface();
@@ -210,10 +188,8 @@
       atualizarFirebase(nome, estados[nome].tempo, false);
     };
 
-    window.reiniciar = (i) => {
+    window.reset = (i) => {
       const nome = partidos[i];
-      const tempoInicial = parseInt(document.getElementById(`min-${i}`).value) || 0;
-      estados[nome].tempo = tempoInicial * 60;
       clearInterval(estados[nome].timer);
       estados[nome].rodando = false;
       atualizarFirebase(nome, estados[nome].tempo, false);
@@ -221,7 +197,7 @@
     };
 
     window.adicionarPartido = () => {
-      const novoNome = `Partido ${partidos.length + 1}`;
+      const novoNome = `Partido ${partidos.length}`;
       partidos.push(novoNome);
       estados[novoNome] = { tempo: 0, rodando: false, timer: null };
       criarInterface();
@@ -237,18 +213,17 @@
     };
 
     window.resetarTudo = () => {
-      if (confirm("Tem certeza que deseja limpar tudo?")) {
+      if (confirm("Tem a certeza que deseja limpar tudo?")) {
         remove(ref(db, 'tempos'));
         remove(ref(db, 'nomes'));
-        remove(ref(db, 'notaFinal'));
+        remove(ref(db, 'titulo'));
         partidos = [];
         document.getElementById('grade').innerHTML = '';
-        document.getElementById('notaFinal').value = '';
       }
     };
 
-    // Inicialização
-    partidos = ["Partido 1", "Partido 2", "Partido 3"];
+    // Inicializar com Partido 0 como título
+    partidos = ["Título do Evento", "Partido 1", "Partido 2"];
     partidos.forEach(nome => {
       estados[nome] = { tempo: 0, rodando: false, timer: null };
     });
