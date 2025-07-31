@@ -32,6 +32,11 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       padding: 30px 20px;
       text-align: center;
+      transition: transform 0.2s ease;
+    }
+
+    .cartao:hover {
+      transform: scale(1.02);
     }
 
     .nome {
@@ -53,7 +58,10 @@
 
   <script type="module">
     import { db } from './firebase-config.js';
-    import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import {
+      ref,
+      onValue
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const container = document.getElementById('container');
     const tituloEl = document.getElementById('titulo');
@@ -69,12 +77,10 @@
     }
 
     function atualizarEcrã() {
-      // Atualiza título
       if (titulo) {
         tituloEl.textContent = titulo;
       }
 
-      // Atualiza tempos
       container.innerHTML = '';
       Object.entries(dadosTempos).forEach(([nomeOriginal, dados]) => {
         const nomeExibir = nomesCustomizados[nomeOriginal] || nomeOriginal;
