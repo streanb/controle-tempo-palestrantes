@@ -11,31 +11,9 @@
       color: #333;
     }
 
-    #partido-zero {
-      max-width: 400px;
-      margin: 0 auto 40px auto;
-      background-color: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 30px 20px;
-      text-align: center;
-    }
-
-    #partido-zero .nome {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    #partido-zero .tempo {
-      font-size: 3rem;
-      color: #007BFF;
-      font-weight: bold;
-    }
-
     .grade {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 20px;
       max-width: 1200px;
       margin: 0 auto;
@@ -63,12 +41,6 @@
   </style>
 </head>
 <body>
-
-  <div id="partido-zero">
-    <div class="nome">Partido 0</div>
-    <div class="tempo">00:00</div>
-  </div>
-
   <div class="grade" id="container"></div>
 
   <script type="module">
@@ -76,9 +48,6 @@
     import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const container = document.getElementById('container');
-    const partidoZeroDiv = document.getElementById('partido-zero');
-    const partidoZeroNomeEl = partidoZeroDiv.querySelector('.nome');
-    const partidoZeroTempoEl = partidoZeroDiv.querySelector('.tempo');
 
     let dadosTempos = {};
     let nomesCustomizados = {};
@@ -90,17 +59,8 @@
     }
 
     function atualizarEcrã() {
-      // Atualizar Partido 0
-      const dadosZero = dadosTempos["Partido 0"] || { tempoRestante: 0 };
-      const nomeZero = nomesCustomizados["Partido 0"] || "Partido 0";
-      partidoZeroNomeEl.textContent = nomeZero;
-      partidoZeroTempoEl.textContent = formatarTempo(dadosZero.tempoRestante);
-
-      // Atualizar os outros partidos
       container.innerHTML = '';
       Object.entries(dadosTempos).forEach(([nomeOriginal, dados]) => {
-        if (nomeOriginal === "Partido 0") return; // Ignorar o Partido 0 aqui
-
         const nomeExibir = nomesCustomizados[nomeOriginal] || nomeOriginal;
         const tempo = dados?.tempoRestante ?? 0;
 
@@ -114,13 +74,11 @@
       });
     }
 
-    // Escutar tempos
     onValue(ref(db, 'tempos'), (snapshot) => {
       dadosTempos = snapshot.val() || {};
       atualizarEcrã();
     });
 
-    // Escutar nomes personalizados
     onValue(ref(db, 'nomes'), (snapshot) => {
       nomesCustomizados = snapshot.val() || {};
       atualizarEcrã();
