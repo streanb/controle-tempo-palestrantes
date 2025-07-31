@@ -15,11 +15,19 @@
       margin-top: 0;
     }
 
+    .topo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .topo .cartao {
+      display: inline-block;
+    }
+
     #grade {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 16px;
-      margin-top: 20px;
     }
 
     .cartao {
@@ -36,44 +44,40 @@
       margin-bottom: 8px;
     }
 
-    .botoes-cima,
-    .botoes-baixo {
+    .botoes {
       display: flex;
       justify-content: space-between;
       margin-top: 10px;
     }
 
-    .botoes-cima input[type="number"] {
+    .botoes input[type="number"] {
       width: 60px;
     }
 
-    .botoes-cima button,
-    .botoes-baixo button,
-    .top-controls button {
+    .botoes button {
       padding: 6px 12px;
       font-size: 14px;
-      background: #e0e0e0;
+      background-color: #e0e0e0;
       border: none;
       border-radius: 6px;
       cursor: pointer;
     }
 
-    .top-controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+    .botoes button:hover {
+      background-color: #d5d5d5;
+    }
+
+    .add-btn {
       margin-bottom: 20px;
     }
   </style>
 </head>
 <body>
-  <h2>Administração de Tempos</h2>
+  <h2>Administração de Partidos</h2>
 
-  <div class="top-controls">
-    <button onclick="adicionarPartido()">+ Adicionar Partido</button>
-    <button onclick="resetarTudo()">Reset</button>
-  </div>
+  <button class="add-btn" onclick="adicionarPartido()">+ Adicionar Partido</button>
 
+  <div class="topo" id="partido-zero"></div>
   <div id="grade"></div>
 
   <script type="module">
@@ -94,10 +98,10 @@
       return `${m}:${s}`;
     }
 
-    function atualizarFirebase(nome, tempo, rodando) {
+    function atualizarFirebase(nome, tempo) {
       set(ref(db, 'tempos/' + nome), {
         tempoRestante: tempo,
-        rodando: rodando
+        rodando: false
       });
     }
 
@@ -105,35 +109,30 @@
       set(ref(db, 'nomes/' + nomeOriginal), novoNome);
     }
 
-    function atualizarTitulo(titulo) {
-      set(ref(db, 'titulo'), titulo);
-    }
-
     function criarInterface() {
       const grade = document.getElementById('grade');
+      const topo = document.getElementById('partido-zero');
       grade.innerHTML = '';
+      topo.innerHTML = '';
 
       partidos.forEach((nome, i) => {
         const div = document.createElement('div');
         div.className = 'cartao';
-        const label = i === 0 ? ' (Título)' : '';
         div.innerHTML = `
           <input type="text" id="nome-${i}" value="${nome}" onchange="window.salvarNome(${i})" />
-          <div class="botoes-cima">
+          <div class="botoes">
             <input type="number" id="min-${i}" placeholder="Min">
-            <button onclick="window.setTempo(${i})">Tempo</button>
-            <button onclick="window.removerPartido(${i})">Remover</button>
-          </div>
-          <div class="botoes-baixo">
-            <button onclick="window.play(${i})">Iniciar</button>
-            <button onclick="window.pause(${i})">Pausar</button>
-            <button onclick="window.reset(${i})">Reiniciar</button>
+            <button onclick="window.setTempo(${i})">${i === 0 ? 'SET NOME' : 'SET'}</button>
           </div>
           <div style="margin-top:8px; text-align:center;">
             <span id="tempo-${i}">00:00</span>
           </div>
         `;
-        grade.appendChild(div);
+        if (i === 0) {
+          topo.appendChild(div);
+        } else {
+          grade.appendChild(div);
+        }
       });
     }
 
@@ -142,12 +141,6 @@
       const nomeAntigo = partidos[i];
       partidos[i] = novoNome;
       atualizarNomeFirebase(nomeAntigo, novoNome);
-
-      // se for o primeiro, atualizar o título
-      if (i === 0) {
-        atualizarTitulo(novoNome);
-      }
-
       estados[novoNome] = estados[nomeAntigo];
       delete estados[nomeAntigo];
       criarInterface();
@@ -157,42 +150,7 @@
       const nome = partidos[i];
       const min = parseInt(document.getElementById(`min-${i}`).value) || 0;
       estados[nome].tempo = min * 60;
-      atualizarFirebase(nome, estados[nome].tempo, false);
-      document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
-    };
-
-    window.play = (i) => {
-      const nome = partidos[i];
-      if (estados[nome].rodando) return;
-
-      estados[nome].rodando = true;
-      atualizarFirebase(nome, estados[nome].tempo, true);
-
-      estados[nome].timer = setInterval(() => {
-        if (estados[nome].tempo > 0) {
-          estados[nome].tempo--;
-          atualizarFirebase(nome, estados[nome].tempo, true);
-          document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
-        } else {
-          clearInterval(estados[nome].timer);
-          estados[nome].rodando = false;
-          atualizarFirebase(nome, 0, false);
-        }
-      }, 1000);
-    };
-
-    window.pause = (i) => {
-      const nome = partidos[i];
-      estados[nome].rodando = false;
-      clearInterval(estados[nome].timer);
-      atualizarFirebase(nome, estados[nome].tempo, false);
-    };
-
-    window.reset = (i) => {
-      const nome = partidos[i];
-      clearInterval(estados[nome].timer);
-      estados[nome].rodando = false;
-      atualizarFirebase(nome, estados[nome].tempo, false);
+      atualizarFirebase(nome, estados[nome].tempo);
       document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
     };
 
@@ -203,27 +161,8 @@
       criarInterface();
     };
 
-    window.removerPartido = (i) => {
-      const nome = partidos[i];
-      partidos.splice(i, 1);
-      delete estados[nome];
-      remove(ref(db, 'tempos/' + nome));
-      remove(ref(db, 'nomes/' + nome));
-      criarInterface();
-    };
-
-    window.resetarTudo = () => {
-      if (confirm("Tem a certeza que deseja limpar tudo?")) {
-        remove(ref(db, 'tempos'));
-        remove(ref(db, 'nomes'));
-        remove(ref(db, 'titulo'));
-        partidos = [];
-        document.getElementById('grade').innerHTML = '';
-      }
-    };
-
-    // Inicializar com Partido 0 como título
-    partidos = ["Título do Evento", "Partido 1", "Partido 2"];
+    // Inicialização
+    partidos = ["Partido 0"];
     partidos.forEach(nome => {
       estados[nome] = { tempo: 0, rodando: false, timer: null };
     });
