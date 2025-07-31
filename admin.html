@@ -11,7 +11,7 @@
       background: #f5f5f5;
     }
 
-    h2 {
+    h2, h3 {
       margin-top: 0;
     }
 
@@ -30,7 +30,7 @@
     }
 
     .cartao input[type="text"] {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
       width: 100%;
       margin-bottom: 8px;
@@ -67,10 +67,18 @@
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 20px;
+      align-items: center;
+    }
+
+    .top-controls input[type="text"] {
+      font-size: 16px;
+      padding: 6px;
+      width: 300px;
     }
 
     .top-controls button {
       padding: 6px 12px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -78,6 +86,8 @@
   <h2>Administração do Tempo</h2>
 
   <div class="top-controls">
+    <input type="text" id="textoTopo" placeholder="Texto do topo da página pública" />
+    <button onclick="atualizarTextoTopo()">Atualizar Texto do Topo</button>
     <button onclick="adicionarPalestrante()">+ Adicionar Palestrante</button>
     <button onclick="resetarTudo()">🔄 Reset</button>
   </div>
@@ -89,6 +99,7 @@
     import {
       ref,
       set,
+      onValue,
       remove
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
@@ -109,7 +120,14 @@
     }
 
     function atualizarNomeFirebase(nomeOriginal, novoNome) {
-      set(ref(db, 'nomes/' + nomeOriginal), novoNome);
+      // Remove nome antigo e adiciona novo no Firebase
+      remove(ref(db, 'nomes/' + nomeOriginal));
+      set(ref(db, 'nomes/' + novoNome), novoNome);
+    }
+
+    function atualizarTextoTopo() {
+      const texto = document.getElementById('textoTopo').value;
+      set(ref(db, 'textoTopo'), texto);
     }
 
     function criarInterface() {
@@ -122,7 +140,7 @@
         div.innerHTML = `
           <input type="text" id="nome-${i}" value="${nome}" onchange="window.salvarNome(${i})" />
           <div class="botoes-cima">
-            <input type="number" id="min-${i}" placeholder="Min">
+            <input type="number" id="min-${i}" placeholder="Min" min="0">
             <button onclick="window.setTempo(${i})">Definir Tempo</button>
             <button onclick="window.removerPalestrante(${i})">Remover</button>
           </div>
@@ -139,12 +157,19 @@
     }
 
     window.salvarNome = (i) => {
-      const novoNome = document.getElementById(`nome-${i}`).value;
+      const novoNome = document.getElementById(`nome-${i}`).value.trim();
+      if(!novoNome) return alert("O nome não pode ficar vazio.");
+
       const nomeAntigo = palestrantes[i];
       palestrantes[i] = novoNome;
+
+      // Atualizar nomes no Firebase
       atualizarNomeFirebase(nomeAntigo, novoNome);
+
+      // Atualizar estados para novo nome
       estados[novoNome] = estados[nomeAntigo];
       delete estados[nomeAntigo];
+
       criarInterface();
     };
 
@@ -187,6 +212,7 @@
       const novoNome = `Palestrante ${palestrantes.length + 1}`;
       palestrantes.push(novoNome);
       estados[novoNome] = { tempo: 0, rodando: false, timer: null };
+      set(ref(db, 'nomes/' + novoNome), novoNome);
       criarInterface();
     };
 
@@ -203,6 +229,7 @@
       if (confirm("Tem certeza que deseja limpar a visualização pública?")) {
         remove(ref(db, 'tempos'));
         remove(ref(db, 'nomes'));
+        remove(ref(db, 'textoTopo'));
         palestrantes = [];
         document.getElementById('grade').innerHTML = '';
       }
@@ -212,6 +239,7 @@
     palestrantes = ["Palestrante 1", "Palestrante 2", "Palestrante 3"];
     palestrantes.forEach(nome => {
       estados[nome] = { tempo: 0, rodando: false, timer: null };
+      set(ref(db, 'nomes/' + nome), nome);
     });
     criarInterface();
   </script>
