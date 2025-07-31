@@ -2,13 +2,20 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Tempos ao Vivo</title>
+  <title>Tempos - Partidos</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       background-color: #f9f9f9;
       padding: 40px;
       color: #333;
+    }
+
+    h2 {
+      font-size: 2.5rem;
+      margin-bottom: 40px;
+      text-align: center;
+      color: #222;
     }
 
     .grade {
@@ -28,29 +35,46 @@
     }
 
     .nome {
-      font-size: 1.3rem;
+      font-size: 1.4rem;
       margin-bottom: 10px;
       font-weight: 600;
+      text-align: left;
     }
 
     .tempo {
-      font-size: 2.5rem;
+      font-size: 2.8rem;
       color: #007BFF;
       font-weight: bold;
+      text-align: left;
+    }
+
+    .nota-final {
+      margin-top: 60px;
+      font-size: 1.4rem;
+      color: #444;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-top: 20px;
+      border-top: 1px solid #ccc;
     }
   </style>
 </head>
 <body>
+  <h2>Tempos dos Partidos</h2>
   <div class="grade" id="container"></div>
+  <div id="notaFinal" class="nota-final"></div>
 
   <script type="module">
     import { db } from './firebase-config.js';
     import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const container = document.getElementById('container');
+    const notaFinalEl = document.getElementById('notaFinal');
 
     let dadosTempos = {};
     let nomesCustomizados = {};
+    let notaFinal = "";
 
     function formatarTempo(seg) {
       const m = Math.floor(seg / 60).toString().padStart(2, '0');
@@ -59,6 +83,7 @@
     }
 
     function atualizarEcrã() {
+      // Atualiza tempos
       container.innerHTML = '';
       Object.entries(dadosTempos).forEach(([nomeOriginal, dados]) => {
         const nomeExibir = nomesCustomizados[nomeOriginal] || nomeOriginal;
@@ -72,6 +97,9 @@
         `;
         container.appendChild(div);
       });
+
+      // Atualiza nota final
+      notaFinalEl.textContent = notaFinal || '';
     }
 
     onValue(ref(db, 'tempos'), (snapshot) => {
@@ -81,6 +109,11 @@
 
     onValue(ref(db, 'nomes'), (snapshot) => {
       nomesCustomizados = snapshot.val() || {};
+      atualizarEcrã();
+    });
+
+    onValue(ref(db, 'notaFinal'), (snapshot) => {
+      notaFinal = snapshot.val() || "";
       atualizarEcrã();
     });
   </script>
