@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin - Controle de Palestrantes</title>
+  <title>Admin - Controle de Partidos</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -154,7 +154,7 @@
   <h2>Administração do Tempo</h2>
 
   <div class="top-controls">
-    <button onclick="adicionarPalestrante()">+ Adicionar Palestrante</button>
+    <button onclick="adicionarPartido()">+ Adicionar Partido</button>
     <button onclick="resetarTudo()">🔄 Reset Tudo</button>
   </div>
 
@@ -169,7 +169,7 @@
       remove
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    let palestrantes = [];
+    let partidos = [];
     const estados = {};
 
     function formatarTempo(seg) {
@@ -193,7 +193,7 @@
       const grade = document.getElementById('grade');
       grade.innerHTML = '';
 
-      palestrantes.forEach((nome, i) => {
+      partidos.forEach((nome, i) => {
         const div = document.createElement('div');
         div.className = 'cartao';
         div.innerHTML = `
@@ -201,7 +201,7 @@
           <div class="botoes-cima">
             <input type="number" id="min-${i}" placeholder="Minutos" min="0">
             <button onclick="window.setTempo(${i})">Definir Tempo</button>
-            <button onclick="window.removerPalestrante(${i})">Remover</button>
+            <button onclick="window.removerPartido(${i})">Remover</button>
           </div>
           <div class="botoes-baixo">
             <button onclick="window.play(${i})">▶️</button>
@@ -216,7 +216,7 @@
 
     window.salvarNome = (i) => {
       const novoNome = document.getElementById(`nome-${i}`).value.trim();
-      const nomeAntigo = palestrantes[i];
+      const nomeAntigo = partidos[i];
 
       if (!novoNome) {
         alert("O nome não pode ficar vazio!");
@@ -224,7 +224,7 @@
         return;
       }
 
-      palestrantes[i] = novoNome;
+      partidos[i] = novoNome;
 
       atualizarNomeFirebase(nomeAntigo, novoNome);
 
@@ -235,7 +235,7 @@
     };
 
     window.setTempo = (i) => {
-      const nome = palestrantes[i];
+      const nome = partidos[i];
       const min = parseInt(document.getElementById(`min-${i}`).value) || 0;
 
       estados[nome].tempoInicial = min * 60;
@@ -246,7 +246,7 @@
     };
 
     window.play = (i) => {
-      const nome = palestrantes[i];
+      const nome = partidos[i];
       if (estados[nome].rodando) return;
 
       estados[nome].rodando = true;
@@ -266,14 +266,14 @@
     };
 
     window.pause = (i) => {
-      const nome = palestrantes[i];
+      const nome = partidos[i];
       estados[nome].rodando = false;
       clearInterval(estados[nome].timer);
       atualizarFirebase(nome, estados[nome].tempo, false);
     };
 
     window.resetTempo = (i) => {
-      const nome = palestrantes[i];
+      const nome = partidos[i];
       estados[nome].rodando = false;
       clearInterval(estados[nome].timer);
 
@@ -283,16 +283,16 @@
       document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
     };
 
-    window.adicionarPalestrante = () => {
-      const novoNome = `Palestrante ${palestrantes.length + 1}`;
-      palestrantes.push(novoNome);
+    window.adicionarPartido = () => {
+      const novoNome = `Partido ${partidos.length + 1}`;
+      partidos.push(novoNome);
       estados[novoNome] = { tempo: 0, tempoInicial: 0, rodando: false, timer: null };
       criarInterface();
     };
 
-    window.removerPalestrante = (i) => {
-      const nome = palestrantes[i];
-      palestrantes.splice(i, 1);
+    window.removerPartido = (i) => {
+      const nome = partidos[i];
+      partidos.splice(i, 1);
       delete estados[nome];
       remove(ref(db, 'tempos/' + nome));
       remove(ref(db, 'nomes/' + nome));
@@ -303,13 +303,13 @@
       if (confirm("Tem certeza que deseja limpar a visualização pública?")) {
         remove(ref(db, 'tempos'));
         remove(ref(db, 'nomes'));
-        palestrantes = [];
+        partidos = [];
         document.getElementById('grade').innerHTML = '';
       }
     };
 
-    palestrantes = ["Palestrante 1", "Palestrante 2", "Palestrante 3"];
-    palestrantes.forEach(nome => {
+    partidos = ["Partido 1", "Partido 2", "Partido 3"];
+    partidos.forEach(nome => {
       estados[nome] = { tempo: 0, tempoInicial: 0, rodando: false, timer: null };
     });
     criarInterface();
