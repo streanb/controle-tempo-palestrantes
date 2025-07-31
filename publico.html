@@ -11,14 +11,6 @@
       color: #333;
     }
 
-    h2#textoTopoPublico {
-      font-size: 2rem;
-      margin-bottom: 40px;
-      text-align: center;
-      color: #222;
-      font-weight: 600;
-    }
-
     .grade {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -49,7 +41,6 @@
   </style>
 </head>
 <body>
-  <h2 id="textoTopoPublico"></h2>
   <div class="grade" id="container"></div>
 
   <script type="module">
@@ -57,7 +48,6 @@
     import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const container = document.getElementById('container');
-    const textoTopoEl = document.getElementById('textoTopoPublico');
 
     let dadosTempos = {};
     let nomesCustomizados = {};
@@ -84,21 +74,14 @@
       });
     }
 
-    // Listener para tempos
     onValue(ref(db, 'tempos'), (snapshot) => {
       dadosTempos = snapshot.val() || {};
       atualizarEcrã();
     });
 
-    // Listener para nomes personalizados
     onValue(ref(db, 'nomes'), (snapshot) => {
       nomesCustomizados = snapshot.val() || {};
       atualizarEcrã();
-    });
-
-    // Listener para texto topo
-    onValue(ref(db, 'textoTopo'), (snapshot) => {
-      textoTopoEl.textContent = snapshot.val() || '';
     });
   </script>
 </body>
