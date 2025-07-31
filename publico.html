@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Assembleia de Vialonga</title>
+  <title>Tempos ao Vivo</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -35,46 +35,32 @@
     }
 
     .nome {
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       margin-bottom: 10px;
       font-weight: 600;
-      text-align: left;
     }
 
     .tempo {
       font-size: 2.8rem;
       color: #007BFF;
       font-weight: bold;
-      text-align: left;
-    }
-
-    .nota-final {
-      margin-top: 60px;
-      font-size: 1.4rem;
-      color: #444;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
-      padding-top: 20px;
-      border-top: 1px solid #ccc;
     }
   </style>
 </head>
 <body>
-  <h2>Tempos dos Partidos</h2>
+  <h2 id="titulo">Tempos dos Partidos</h2>
   <div class="grade" id="container"></div>
-  <div id="notaFinal" class="nota-final"></div>
 
   <script type="module">
     import { db } from './firebase-config.js';
     import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const container = document.getElementById('container');
-    const notaFinalEl = document.getElementById('notaFinal');
+    const tituloEl = document.getElementById('titulo');
 
     let dadosTempos = {};
     let nomesCustomizados = {};
-    let notaFinal = "";
+    let titulo = "";
 
     function formatarTempo(seg) {
       const m = Math.floor(seg / 60).toString().padStart(2, '0');
@@ -83,9 +69,19 @@
     }
 
     function atualizarEcrã() {
-      // Atualiza tempos
+      // Atualiza título se existir
+      if (titulo) {
+        tituloEl.textContent = titulo;
+      }
+
       container.innerHTML = '';
-      Object.entries(dadosTempos).forEach(([nomeOriginal, dados]) => {
+
+      const entradas = Object.entries(dadosTempos);
+
+      entradas.forEach(([nomeOriginal, dados], idx) => {
+        // O primeiro partido é tratado como título, não aparece na grelha
+        if (idx === 0) return;
+
         const nomeExibir = nomesCustomizados[nomeOriginal] || nomeOriginal;
         const tempo = dados?.tempoRestante ?? 0;
 
@@ -97,23 +93,23 @@
         `;
         container.appendChild(div);
       });
-
-      // Atualiza nota final
-      notaFinalEl.textContent = notaFinal || '';
     }
 
+    // Listener para tempos
     onValue(ref(db, 'tempos'), (snapshot) => {
       dadosTempos = snapshot.val() || {};
       atualizarEcrã();
     });
 
+    // Listener para nomes personalizados
     onValue(ref(db, 'nomes'), (snapshot) => {
       nomesCustomizados = snapshot.val() || {};
       atualizarEcrã();
     });
 
-    onValue(ref(db, 'notaFinal'), (snapshot) => {
-      notaFinal = snapshot.val() || "";
+    // Listener para título
+    onValue(ref(db, 'titulo'), (snapshot) => {
+      titulo = snapshot.val() || "";
       atualizarEcrã();
     });
   </script>
