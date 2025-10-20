@@ -34,7 +34,6 @@
 
   button:hover { filter: brightness(1.1); }
 
-  .obs { background: #111; color: #fff; }
   .publico { background: #007BFF; color: #fff; }
   .admin { background: #28a745; color: #fff; }
 </style>
@@ -43,20 +42,23 @@
   <h1>Controle de Tempos - Menu</h1>
 
   <div class="botoes">
-    <button class="obs" onclick="abrirOBS()">OBS</button>
     <button class="publico" onclick="abrirPublico()">Público</button>
     <button class="admin" onclick="abrirAdmin()">Admin</button>
   </div>
 
- <script>
-function abrirAdmin() {
-  const senha = prompt("Digite a senha de acesso ao Admin:");
-  if(senha === "nunomoreira") {
-    window.open('admin.html', '_blank');
-  } else {
-    alert("Senha incorreta!");
-  }
-}
-</script>
+  <script>
+    function abrirPublico() {
+      window.open('publico.html', '_blank');
+    }
+
+    function abrirAdmin() {
+      const senha = prompt("Digite a senha de acesso ao Admin:");
+      if(senha === "nunomoreira") {
+        window.open('admin.html', '_blank');
+      } else {
+        alert("Senha incorreta!");
+      }
+    }
+  </script>
 </body>
 </html>
