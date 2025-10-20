@@ -1,178 +1,250 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
-<title>Admin - Controle de Tempos</title>
-<style>
-  body { font-family: Arial; padding: 20px; background: #f0f0f0; color: #222; }
-  h2 { margin-top:0; }
-  #grade { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:16px; }
-  .cartao { background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
-  input, button { margin-top:8px; padding:6px; font-size:14px; }
-  .botoes, .cores { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
-  .cores button { width:24px; height:24px; border:none; cursor:pointer; border-radius:4px; }
-  .botoes button { flex:1; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Admin - Controle de Tempos</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; background: #f0f0f0; color: #222; }
+    h1 { margin-top: 0; margin-bottom: 20px; }
+    #grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+    .cartao { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center; }
+    .cartao input[type="text"] { font-size:18px; font-weight:bold; width:100%; margin-bottom:12px; padding:6px 8px; border-radius:6px; border:1px solid #ccc; text-align:center; background:#fafafa; color:#333; }
+    .botoes-cima { display:flex; justify-content:space-between; width:100%; margin-bottom:12px; gap:8px; }
+    .botoes-cima input[type="number"] { width:80px; font-size:16px; padding:6px 8px; border-radius:6px; border:1px solid #ccc; background:#fafafa; color:#333; text-align:center; }
+    .botoes-cima button { flex:1; background:#e0e0e0; color:#000; border:none; border-radius:6px; font-weight:bold; cursor:pointer; transition:background-color .3s; padding:8px 12px; font-size:14px; }
+    .botoes-cima button:hover{ background:#d0d0d0; }
+    .botoes-baixo { display:flex; justify-content:center; gap:15px; margin-top:10px; width:100%; }
+    .botoes-baixo button { background:#444; color:#fff; border:none; border-radius:8px; font-size:18px; padding:10px 18px; cursor:pointer; font-weight:bold; box-shadow:0 2px 6px rgba(0,0,0,0.1); transition:background-color .3s; min-width:70px; }
+    .botoes-baixo button.pause { background:#666; }
+    .botoes-baixo button.reset { background:#999; }
+    .botoes-baixo button:hover { filter:brightness(1.1); }
+    .tempo-display { margin-top:12px; font-size:2rem; font-weight:bold; color:#333; text-align:center; width:100%; }
+    .top-controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
+    .top-controls button { padding:8px 16px; font-weight:bold; border-radius:8px; border:none; cursor:pointer; background:#ccc; color:#000; transition:background-color .3s; }
+    .top-controls button:hover{ background:#bbb; }
+    .cores { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+    .cores button { width:30px; height:30px; border:none; border-radius:4px; cursor:pointer; }
+    #titulo-container { margin-bottom:20px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    #titulo-container input { padding:6px 8px; font-size:16px; border-radius:6px; border:1px solid #ccc; flex:1; min-width:250px; }
+    #titulo-container button { padding:6px 12px; font-size:16px; font-weight:bold; border-radius:6px; cursor:pointer; border:none; background:#28a745; color:#fff; transition:background .3s; }
+    #titulo-container button:hover { background:#218838; }
+  </style>
 </head>
 <body>
-<h2>Administração de Tempos</h2>
-<button onclick="adicionarPartido()">+ Adicionar Partido</button>
-<button onclick="resetarTudo()">🔄 Reset Tudo</button>
+
+<h1 id="titulo-principal">Controle de Tempos Assembleia de Freguesia</h1>
+
+<div id="titulo-container">
+  <input type="text" id="input-titulo" placeholder="Digite novo título">
+  <button onclick="atualizarTitulo()">Atualizar Título</button>
+</div>
+
+<div class="top-controls">
+  <button onclick="adicionarPartido()">+ Adicionar Partido</button>
+  <button onclick="resetarTudo()">🔄 Reset Tudo</button>
+</div>
+
 <div id="grade"></div>
+
+<div class="cores">
+  <button style="background:#007BFF;" onclick="selecionarCor('#007BFF')"></button>
+  <button style="background:#28a745;" onclick="selecionarCor('#28a745')"></button>
+  <button style="background:#dc3545;" onclick="selecionarCor('#dc3545')"></button>
+  <button style="background:#ffc107;" onclick="selecionarCor('#ffc107')"></button>
+  <button style="background:#6f42c1;" onclick="selecionarCor('#6f42c1')"></button>
+  <button style="background:#fd7e14;" onclick="selecionarCor('#fd7e14')"></button>
+  <button style="background:#20c997;" onclick="selecionarCor('#20c997')"></button>
+  <button style="background:#17a2b8;" onclick="selecionarCor('#17a2b8')"></button>
+  <button style="background:#e83e8c;" onclick="selecionarCor('#e83e8c')"></button>
+  <button style="background:#343a40;" onclick="selecionarCor('#343a40')"></button>
+  <button style="background:#fd6f61;" onclick="selecionarCor('#fd6f61')"></button>
+  <button style="background:#adb5bd;" onclick="selecionarCor('#adb5bd')"></button>
+</div>
 
 <script type="module">
 import { db } from './firebase-config.js';
 import { ref, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+// Estado
 let partidos = [];
 const estados = {};
-const grade = document.getElementById('grade');
+let corSelecionada = '#FFFFFF';
 
-// Função para formatar tempo
-function formatarTempo(seg){ const m=Math.floor(seg/60).toString().padStart(2,'0'); const s=(seg%60).toString().padStart(2,'0'); return `${m}:${s}`; }
+// Título
+const tituloRef = ref(db,'titulo');
+const inputTitulo = document.getElementById('input-titulo');
+const h1Titulo = document.getElementById('titulo-principal');
 
-// Criar interface dos cartões
-function criarInterface(){
-  grade.innerHTML='';
+// Carrega título do Firebase
+onValue(tituloRef, snapshot => {
+  const valor = snapshot.val();
+  if(valor) {
+    h1Titulo.textContent = valor;
+    inputTitulo.value = valor;
+  }
+});
+
+// Atualiza título no Firebase
+window.atualizarTitulo = () => {
+  const novoTitulo = inputTitulo.value.trim();
+  if(!novoTitulo) return alert("O título não pode ficar vazio!");
+  set(tituloRef, novoTitulo);
+};
+
+// Funções utilitárias
+function formatarTempo(seg) {
+  const m = Math.floor(seg/60).toString().padStart(2,'0');
+  const s = (seg%60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+// Atualiza Firebase tempo
+function atualizarFirebase(nome, tempo, rodando) {
+  set(ref(db,'tempos/'+nome), { tempoRestante: tempo, rodando: rodando });
+}
+
+// Atualiza cor no Firebase
+function atualizarCorFirebase(nome, cor) {
+  set(ref(db,'cores/'+nome), cor);
+}
+
+// Cria interface dos cartões
+function criarInterface() {
+  const grade = document.getElementById('grade');
+  grade.innerHTML = '';
   partidos.forEach((nome,i)=>{
-    if(!estados[nome]) estados[nome]={tempo:0,tempoInicial:0,rodando:false,timer:null};
-    const div=document.createElement('div');
-    div.className='cartao';
-    div.id='cartao-'+nome;
-    div.innerHTML=`
-      <input type="text" id="nome-${i}" value="${nome}" onchange="salvarNome(${i})" />
-      <div class="botoes">
+    if(!estados[nome]) estados[nome] = { tempo:0, tempoInicial:0, rodando:false, timer:null };
+    const div = document.createElement('div');
+    div.className = 'cartao';
+    div.innerHTML = `
+      <input type="text" id="nome-${i}" value="${nome}" onchange="salvarNome(${i})"/>
+      <div class="botoes-cima">
         <input type="number" id="min-${i}" placeholder="Minutos" min="0">
-        <button onclick="setTempo(${i})">Definir</button>
+        <button onclick="setTempo(${i})">Definir Tempo</button>
         <button onclick="removerPartido(${i})">Remover</button>
       </div>
-      <div class="botoes">
+      <div class="botoes-baixo">
         <button onclick="play(${i})">▶️</button>
-        <button onclick="pause(${i})">⏸️</button>
-        <button onclick="resetTempo(${i})">🔄</button>
+        <button class="pause" onclick="pause(${i})">⏸️</button>
+        <button class="reset" onclick="resetTempo(${i})">Reset</button>
       </div>
-      <div class="tempo-display" id="tempo-${i}" style="margin-top:10px;font-weight:bold;">${formatarTempo(estados[nome].tempo)}</div>
-      <div class="cores">
-        <button style="background:#FF0000;" onclick="mudarCor('${nome}','#FF0000')"></button>
-        <button style="background:#00FF00;" onclick="mudarCor('${nome}','#00FF00')"></button>
-        <button style="background:#0000FF;" onclick="mudarCor('${nome}','#0000FF')"></button>
-        <button style="background:#FFFF00;" onclick="mudarCor('${nome}','#FFFF00')"></button>
-        <button style="background:#FF00FF;" onclick="mudarCor('${nome}','#FF00FF')"></button>
-        <button style="background:#00FFFF;" onclick="mudarCor('${nome}','#00FFFF')"></button>
-        <button style="background:#FFA500;" onclick="mudarCor('${nome}','#FFA500')"></button>
-        <button style="background:#800080;" onclick="mudarCor('${nome}','#800080')"></button>
-        <button style="background:#008000;" onclick="mudarCor('${nome}','#008000')"></button>
-        <button style="background:#FFC0CB;" onclick="mudarCor('${nome}','#FFC0CB')"></button>
-        <button style="background:#808080;" onclick="mudarCor('${nome}','#808080')"></button>
-        <button style="background:#000000;" onclick="mudarCor('${nome}','#000000')"></button>
-      </div>
+      <div class="tempo-display" id="tempo-${i}">${formatarTempo(estados[nome].tempo)}</div>
     `;
     grade.appendChild(div);
   });
 }
 
+// Seleciona cor
+window.selecionarCor = (cor) => {
+  corSelecionada = cor;
+  partidos.forEach(nome=>{
+    atualizarCorFirebase(nome, corSelecionada);
+  });
+};
+
 // Funções de tempo
-function atualizarFirebase(nome){
-  set(ref(db,'tempos/'+nome),{tempoRestante:estados[nome].tempo,rodando:estados[nome].rodando});
-  set(ref(db,'nomes/'+nome),nome);
-}
-
-// Funções globais
-window.salvarNome=function(i){
-  const novo=document.getElementById(`nome-${i}`).value.trim();
-  const antigo=partidos[i];
-  if(!novo){ alert('Nome vazio!'); return; }
-  partidos[i]=novo;
-  estados[novo]=estados[antigo];
-  delete estados[antigo];
-  remove(ref(db,'nomes/'+antigo));
-  set(ref(db,'nomes/'+novo),novo);
+window.salvarNome = (i) => {
+  const novoNome = document.getElementById(`nome-${i}`).value.trim();
+  const nomeAntigo = partidos[i];
+  if(!novoNome) {
+    alert("O nome não pode ficar vazio!");
+    document.getElementById(`nome-${i}`).value = nomeAntigo;
+    return;
+  }
+  partidos[i] = novoNome;
+  estados[novoNome] = estados[nomeAntigo] || { tempo:0, tempoInicial:0, rodando:false, timer:null };
+  delete estados[nomeAntigo];
+  set(ref(db,'nomes/'+novoNome), true);
+  remove(ref(db,'nomes/'+nomeAntigo));
   criarInterface();
-}
+};
 
-window.setTempo=function(i){
-  const nome=partidos[i];
-  const min=parseInt(document.getElementById(`min-${i}`).value)||0;
-  estados[nome].tempoInicial=min*60;
-  estados[nome].tempo=estados[nome].tempoInicial;
-  estados[nome].rodando=false;
-  atualizarFirebase(nome);
-  document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
-}
+window.setTempo = (i) => {
+  const nome = partidos[i];
+  const min = parseInt(document.getElementById(`min-${i}`).value) || 0;
+  estados[nome].tempoInicial = min*60;
+  estados[nome].tempo = estados[nome].tempoInicial;
+  atualizarFirebase(nome, estados[nome].tempo,false);
+  document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
+};
 
-window.play=function(i){
-  const nome=partidos[i];
-  if(estados[nome].rodando || estados[nome].tempo<=0) return;
-  estados[nome].rodando=true;
-  atualizarFirebase(nome);
-  estados[nome].timer=setInterval(()=>{
-    if(estados[nome].tempo>0){
-      estados[nome].tempo--;
-      atualizarFirebase(nome);
-      document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
+window.play = (i) => {
+  const nome = partidos[i];
+  const estado = estados[nome];
+  if(!estado || estado.rodando || estado.tempo<=0) return;
+  estado.rodando = true;
+  atualizarFirebase(nome, estado.tempo,true);
+  estado.timer = setInterval(()=>{
+    if(estado.tempo>0){
+      estado.tempo--;
+      atualizarFirebase(nome, estado.tempo,true);
+      document.getElementById(`tempo-${i}`).textContent = formatarTempo(estado.tempo);
     } else {
-      clearInterval(estados[nome].timer);
-      estados[nome].rodando=false;
-      atualizarFirebase(nome);
+      clearInterval(estado.timer);
+      estado.rodando = false;
+      atualizarFirebase(nome,0,false);
     }
   },1000);
-}
+};
 
-window.pause=function(i){
-  const nome=partidos[i];
-  estados[nome].rodando=false;
-  clearInterval(estados[nome].timer);
-  atualizarFirebase(nome);
-}
+window.pause = (i) => {
+  const nome = partidos[i];
+  const estado = estados[nome];
+  if(!estado) return;
+  estado.rodando = false;
+  clearInterval(estado.timer);
+  atualizarFirebase(nome,estado.tempo,false);
+};
 
-window.resetTempo=function(i){
-  const nome=partidos[i];
-  estados[nome].rodando=false;
-  clearInterval(estados[nome].timer);
-  estados[nome].tempo=estados[nome].tempoInicial||0;
-  atualizarFirebase(nome);
-  document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
-}
+window.resetTempo = (i) => {
+  const nome = partidos[i];
+  const estado = estados[nome];
+  if(!estado) return;
+  estado.rodando = false;
+  clearInterval(estado.timer);
+  estado.tempo = estado.tempoInicial || 0;
+  atualizarFirebase(nome,estado.tempo,false);
+  document.getElementById(`tempo-${i}`).textContent = formatarTempo(estado.tempo);
+};
 
-window.adicionarPartido=function(){
-  const nome=`Partido ${partidos.length+1}`;
-  partidos.push(nome);
-  estados[nome]={tempo:0,tempoInicial:0,rodando:false,timer:null};
-  set(ref(db,'nomes/'+nome),nome);
+window.adicionarPartido = () => {
+  const novoNome = `Partido ${partidos.length+1}`;
+  partidos.push(novoNome);
+  estados[novoNome] = { tempo:0, tempoInicial:0, rodando:false, timer:null };
+  set(ref(db,'nomes/'+novoNome), true);
   criarInterface();
-}
+};
 
-window.removerPartido=function(i){
-  const nome=partidos[i];
-  clearInterval(estados[nome].timer);
+window.removerPartido = (i) => {
+  const nome = partidos[i];
+  if(!nome) return;
+  if(estados[nome]?.timer) clearInterval(estados[nome].timer);
+  partidos.splice(i,1);
+  delete estados[nome];
   remove(ref(db,'tempos/'+nome));
   remove(ref(db,'nomes/'+nome));
   remove(ref(db,'cores/'+nome));
-  partidos.splice(i,1);
-  delete estados[nome];
   criarInterface();
-}
+};
 
-window.resetarTudo=function(){
-  if(!confirm("Confirma limpar todos os tempos?")) return;
-  remove(ref(db,'tempos'));
-  remove(ref(db,'nomes'));
-  remove(ref(db,'cores'));
-  partidos.forEach(n=>clearInterval(estados[n].timer));
-  partidos=[]; for(const k in estados) delete estados[k];
-  criarInterface();
-}
-
-// Função de cores
-window.mudarCor=function(nome,cor){
-  set(ref(db,'cores/'+nome),cor);
-}
+window.resetarTudo = () => {
+  if(!confirm("Tem certeza que deseja limpar tudo?")) return;
+  Object.keys(estados).forEach(n => {
+    if(estados[n]?.timer) clearInterval(estados[n]?.timer);
+    remove(ref(db,'tempos/'+n));
+    remove(ref(db,'nomes/'+n));
+    remove(ref(db,'cores/'+n));
+  });
+  partidos = [];
+  for(const k in estados) delete estados[k];
+  document.getElementById('grade').innerHTML = '';
+};
 
 // Inicialização
-partidos=['Partido 1','Partido 2','Partido 3'];
-partidos.forEach(n=>estados[n]={tempo:0,tempoInicial:0,rodando:false,timer:null});
+partidos = ["Partido 1","Partido 2","Partido 3"];
+partidos.forEach(nome => { estados[nome] = { tempo:0, tempoInicial:0, rodando:false, timer:null }; });
 criarInterface();
-
 </script>
+
 </body>
 </html>
