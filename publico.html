@@ -1,104 +1,123 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8" />
-  <title>Tempos ao Vivo</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f9f9f9;
-      padding: 40px;
-      color: #333;
-    }
+<meta charset="UTF-8">
+<title>Tempos ao Vivo</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f9f9f9;
+    padding: 40px;
+    color: #333;
+  }
 
-    .grade {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+  h1 {
+    text-align: center;
+    margin-bottom: 30px;
+  }
 
-    .cartao {
-      background-color: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 30px 20px;
-      text-align: center;
-      transition: background-color 0.3s;
-    }
+  .grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
 
-    .nome {
-      font-size: 1.3rem;
-      margin-bottom: 10px;
-      font-weight: 600;
-    }
+  .cartao {
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    padding: 30px 20px;
+    text-align: center;
+    transition: background-color 0.3s;
+  }
 
-    .tempo {
-      font-size: 2.5rem;
-      font-weight: bold;
-      color: white;
-      /* contorno preto */
-      text-shadow:
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000;
-    }
-  </style>
+  .nome {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  .tempo {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: white;
+    /* contorno preto */
+    text-shadow:
+      -1px -1px 0 #000,
+      1px -1px 0 #000,
+      -1px 1px 0 #000,
+      1px 1px 0 #000;
+  }
+</style>
 </head>
 <body>
-  <h1>Controle de Tempos Assembleia de Freguesia</h1>
-  <div class="grade" id="container"></div>
 
-  <script type="module">
-    import { db } from './firebase-config.js';
-    import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<h1 id="titulo-principal">Tempos ao Vivo</h1>
+<div class="grade" id="container"></div>
 
-    const container = document.getElementById('container');
+<script type="module">
+import { db } from './firebase-config.js';
+import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    let dadosTempos = {};
-    let nomesCustomizados = {};
-    let cores = {};
+const container = document.getElementById('container');
+const titulo = document.getElementById('titulo-principal');
 
-    function formatarTempo(seg) {
-      const m = Math.floor(seg / 60).toString().padStart(2,'0');
-      const s = (seg % 60).toString().padStart(2,'0');
-      return `${m}:${s}`;
-    }
+let dadosTempos = {};
+let nomesCustomizados = {};
+let cores = {};
 
-    function atualizarEcrã() {
-      container.innerHTML = '';
-      Object.entries(dadosTempos).forEach(([nomeOriginal, dados]) => {
-        const nomeExibir = nomesCustomizados[nomeOriginal] || nomeOriginal;
-        const tempo = dados?.tempoRestante || 0;
+// Formatar tempo MM:SS
+function formatarTempo(seg){
+  const m = Math.floor(seg/60).toString().padStart(2,'0');
+  const s = (seg%60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
 
-        const div = document.createElement('div');
-        div.className = 'cartao';
-        div.id = 'cartao-' + nomeOriginal;
-        div.style.backgroundColor = cores[nomeOriginal] || '#FFFFFF';
-        div.innerHTML = `
-          <div class="nome">${nomeExibir}</div>
-          <div class="tempo">${formatarTempo(tempo)}</div>
-        `;
-        container.appendChild(div);
-      });
-    }
+// Atualizar a tela
+function atualizarEcrã(){
+  container.innerHTML = '';
+  Object.entries(dadosTempos).forEach(([nomeOriginal,dados])=>{
+    const nomeExibir = nomesCustomizados[nomeOriginal] || nomeOriginal;
+    const tempo = dados?.tempoRestante || 0;
+    const corFundo = cores[nomeOriginal] || '#FFFFFF';
 
-    onValue(ref(db,'tempos'), snapshot => {
-      dadosTempos = snapshot.val() || {};
-      atualizarEcrã();
-    });
+    const div = document.createElement('div');
+    div.className='cartao';
+    div.style.backgroundColor = corFundo;
+    div.innerHTML=`
+      <div class="nome">${nomeExibir}</div>
+      <div class="tempo">${formatarTempo(tempo)}</div>
+    `;
+    container.appendChild(div);
+  });
+}
 
-    onValue(ref(db,'nomes'), snapshot => {
-      nomesCustomizados = snapshot.val() || {};
-      atualizarEcrã();
-    });
+// Escutar mudanças nos tempos
+onValue(ref(db,'tempos'), snapshot => {
+  dadosTempos = snapshot.val() || {};
+  atualizarEcrã();
+});
 
-    onValue(ref(db,'cores'), snapshot => {
-      cores = snapshot.val() || {};
-      atualizarEcrã();
-    });
-  </script>
+// Escutar mudanças nos nomes
+onValue(ref(db,'nomes'), snapshot => {
+  nomesCustomizados = snapshot.val() || {};
+  atualizarEcrã();
+});
+
+// Escutar mudanças nas cores
+onValue(ref(db,'cores'), snapshot => {
+  cores = snapshot.val() || {};
+  atualizarEcrã();
+});
+
+// Escutar mudanças no título
+onValue(ref(db,'titulo'), snapshot => {
+  const valor = snapshot.val();
+  if(valor) titulo.textContent = valor;
+});
+
+</script>
 </body>
 </html>
