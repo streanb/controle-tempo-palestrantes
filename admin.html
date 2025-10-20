@@ -1,309 +1,154 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin - Controle de Partidos</title>
+  <meta charset="UTF-8">
+  <title>Admin - Controle de Tempos</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; background: #f0f0f0; color: #222; }
-    h2 { margin-top: 0; margin-bottom: 20px; }
-    #grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
-    .cartao { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center; }
-    .cartao input[type="text"] { font-size:18px; font-weight:bold; width:100%; margin-bottom:12px; padding:6px 8px; border-radius:6px; border:1px solid #ccc; text-align:center; background:#fafafa; color:#333; }
-    .botoes-cima { display:flex; justify-content:space-between; width:100%; margin-bottom:12px; gap:8px; }
-    .botoes-cima input[type="number"] { width:80px; font-size:16px; padding:6px 8px; border-radius:6px; border:1px solid #ccc; background:#fafafa; color:#333; text-align:center; }
-    .botoes-cima button { flex:1; background:#e0e0e0; color:#000; border:none; border-radius:6px; font-weight:bold; cursor:pointer; transition:background-color .3s; padding:8px 12px; font-size:14px; }
-    .botoes-cima button:hover{ background:#d0d0d0; }
-    .botoes-baixo { display:flex; justify-content:center; gap:15px; margin-top:10px; width:100%; }
-    .botoes-baixo button { background:#444; color:#fff; border:none; border-radius:8px; font-size:18px; padding:10px 18px; cursor:pointer; font-weight:bold; box-shadow:0 2px 6px rgba(0,0,0,0.1); transition:background-color .3s; min-width:70px; }
-    .botoes-baixo button.pause { background:#666; }
-    .botoes-baixo button.reset { background:#999; }
-    .botoes-baixo button:hover { filter:brightness(1.1); }
-    .tempo-display { margin-top:12px; font-size:2rem; font-weight:bold; color:#333; text-align:center; width:100%; }
-    .top-controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
-    .top-controls button { padding:8px 16px; font-weight:bold; border-radius:8px; border:none; cursor:pointer; background:#ccc; color:#000; transition:background-color .3s; }
-    .top-controls button:hover{ background:#bbb; }
+    body { font-family: Arial; padding: 20px; background: #f0f0f0; color: #222; }
+    h2 { margin-top: 0; }
+    #grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+    .cartao { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    input, button { margin-top: 8px; padding: 6px; font-size: 14px; }
+    .botoes { display:flex; gap:8px; margin-top:8px; }
   </style>
 </head>
 <body>
-  <h2>Administração do Tempo</h2>
-
-  <div class="top-controls">
-    <button onclick="adicionarPartido()">+ Adicionar Partido</button>
-    <button onclick="resetarTudo()">🔄 Reset Tudo</button>
-  </div>
-
+  <h2>Administração de Tempos</h2>
+  <button onclick="adicionarPartido()">+ Adicionar Partido</button>
+  <button onclick="resetarTudo()">🔄 Reset Tudo</button>
   <div id="grade"></div>
 
-  <!-- Carregue firebase (se usar script tags compatíveis) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
-  <script src="./firebase-config.js"></script> <!-- seu arquivo que inicializa e exporta db -->
+  <script type="module">
+    import { db } from './firebase-config.js';
+    import { ref, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  <script>
-    /* Wrappers seguros para funções do database.
-       Se o Firebase não estiver definido/compatível no momento, essas variáveis
-       ficarão undefined e o resto do app continuará funcionando sem travar.
-    */
-    let refFunc = null;
-    let setFunc = null;
-    let removeFunc = null;
-    let onValueFunc = null;
-
-    try {
-      // Tentativa de suportar a API namespaced (firebase.database())
-      if (window.firebase && typeof window.firebase.database === 'function') {
-        const fbdb = window.firebase.database(); // objeto database (namespaced)
-        refFunc = (path) => fbdb.ref(path);
-        setFunc = (refOrPath, value) => {
-          if (typeof refOrPath === 'string') return fbdb.ref(refOrPath).set(value);
-          return refOrPath.set(value);
-        };
-        removeFunc = (refOrPath) => {
-          if (typeof refOrPath === 'string') return fbdb.ref(refOrPath).remove();
-          return refOrPath.remove();
-        };
-        onValueFunc = (refOrPath, cb) => {
-          const r = (typeof refOrPath === 'string') ? fbdb.ref(refOrPath) : refOrPath;
-          r.on('value', snapshot => cb(snapshot.val()));
-        };
-      }
-    } catch (e) {
-      // se falhar, deixa as funções nulas e evita crash do script
-      console.warn('Firebase não disponível via namespaced API (ou ocorreu erro). Funções firebase desativadas.', e);
-    }
-
-    // Se o seu firebase-config.js define `db` modul ar (por exemplo export const db = ...),
-    // você pode colocar db disponível em window no firebase-config.js:
-    // window.db = db;
-    // Aqui fazemos uma tentativa adicional para suportar um `db` modular exposto globalmente:
-    if (!refFunc && window.db) {
-      try {
-        // Se db for um objeto do SDK modular, ele não terá .ref direto — então
-        // usamos as funções ref/set/remove importadas normalmente via módulo.
-        // Para segurança, detectamos funções comuns:
-        if (typeof window.ref === 'function' && typeof window.set === 'function' && typeof window.remove === 'function') {
-          refFunc = (path) => window.ref(window.db, path);
-          setFunc = (rOrPath, value) => {
-            if (typeof rOrPath === 'string') return window.set(window.ref(window.db, rOrPath), value);
-            return window.set(rOrPath, value);
-          };
-          removeFunc = (rOrPath) => {
-            if (typeof rOrPath === 'string') return window.remove(window.ref(window.db, rOrPath));
-            return window.remove(rOrPath);
-          };
-          onValueFunc = (r, cb) => {
-            const rref = (typeof r === 'string') ? window.ref(window.db, r) : r;
-            if (typeof window.onValue === 'function') {
-              window.onValue(rref, snapshot => cb(snapshot));
-            }
-          };
-        }
-      } catch (e) {
-        console.warn('Tentativa alternativa para modular db falhou', e);
-      }
-    }
-
-    // Funções utilitárias
-    function formatarTempo(seg) {
-      const m = Math.floor(seg / 60).toString().padStart(2, '0');
-      const s = (seg % 60).toString().padStart(2, '0');
-      return `${m}:${s}`;
-    }
-
-    function atualizarFirebase(nome, tempo, rodando) {
-      // usa wrapper se disponível; se não, apenas ignora (não trava)
-      if (!setFunc || !refFunc) return;
-      try {
-        setFunc(refFunc('tempos/' + nome), { tempoRestante: tempo, rodando: rodando });
-      } catch (e) {
-        console.warn('Falha ao atualizar Firebase', e);
-      }
-    }
-
-    function atualizarNomeFirebase(nomeOriginal, novoNome) {
-      if (!setFunc || !removeFunc || !refFunc) return;
-      try {
-        // remove nome antigo e grava o novo (estrutura simples)
-        removeFunc(refFunc('nomes/' + nomeOriginal));
-        setFunc(refFunc('nomes/' + novoNome), true);
-      } catch (e) {
-        console.warn('Falha ao atualizar nome no Firebase', e);
-      }
-    }
-
-    // Estado local
     let partidos = [];
     const estados = {};
 
+    const grade = document.getElementById('grade');
+
+    function formatarTempo(seg) {
+      const m = Math.floor(seg / 60).toString().padStart(2,'0');
+      const s = (seg % 60).toString().padStart(2,'0');
+      return `${m}:${s}`;
+    }
+
     function criarInterface() {
-      const grade = document.getElementById('grade');
       grade.innerHTML = '';
-
-      partidos.forEach((nome, i) => {
-        // garante estado inicial caso não exista
-        if (!estados[nome]) estados[nome] = { tempo: 0, tempoInicial: 0, rodando: false, timer: null };
-
+      partidos.forEach((nome,i)=>{
+        if(!estados[nome]) estados[nome]={tempo:0,tempoInicial:0,rodando:false,timer:null};
         const div = document.createElement('div');
-        div.className = 'cartao';
-        div.innerHTML = `
+        div.className='cartao';
+        div.innerHTML=`
           <input type="text" id="nome-${i}" value="${nome}" onchange="salvarNome(${i})" />
-          <div class="botoes-cima">
+          <div class="botoes">
             <input type="number" id="min-${i}" placeholder="Minutos" min="0">
-            <button onclick="setTempo(${i})">Definir Tempo</button>
+            <button onclick="setTempo(${i})">Definir</button>
             <button onclick="removerPartido(${i})">Remover</button>
           </div>
-          <div class="botoes-baixo">
+          <div class="botoes">
             <button onclick="play(${i})">▶️</button>
-            <button class="pause" onclick="pause(${i})">⏸️</button>
-            <button class="reset" onclick="resetTempo(${i})">Reset</button>
+            <button onclick="pause(${i})">⏸️</button>
+            <button onclick="resetTempo(${i})">🔄</button>
           </div>
-          <div class="tempo-display" id="tempo-${i}">
-            ${formatarTempo(estados[nome].tempo)}
-          </div>
+          <div id="tempo-${i}" style="margin-top:10px;font-weight:bold;">${formatarTempo(estados[nome].tempo)}</div>
         `;
         grade.appendChild(div);
       });
     }
 
-    function salvarNome(i) {
-      const novoNome = document.getElementById(`nome-${i}`).value.trim();
-      const nomeAntigo = partidos[i];
+    function atualizarFirebase(nome) {
+      set(ref(db,'tempos/'+nome),{tempoRestante:estados[nome].tempo,rodando:estados[nome].rodando});
+      set(ref(db,'nomes/'+nome),nome);
+    }
 
-      if (!novoNome) {
-        alert("O nome não pode ficar vazio!");
-        document.getElementById(`nome-${i}`).value = nomeAntigo;
-        return;
-      }
-
-      // atualiza array
-      partidos[i] = novoNome;
-
-      // migra estado (se existir)
-      estados[novoNome] = estados[nomeAntigo] || { tempo:0, tempoInicial:0, rodando:false, timer:null };
-      delete estados[nomeAntigo];
-
-      // atualiza firebase (tolerante)
-      atualizarNomeFirebase(nomeAntigo, novoNome);
-
+    window.salvarNome = function(i){
+      const novoNome=document.getElementById(`nome-${i}`).value.trim();
+      const antigo=partidos[i];
+      if(!novoNome) { alert('Nome não pode estar vazio'); return; }
+      partidos[i]=novoNome;
+      estados[novoNome]=estados[antigo];
+      delete estados[antigo];
+      remove(ref(db,'nomes/'+antigo));
+      set(ref(db,'nomes/'+novoNome),novoNome);
       criarInterface();
     }
 
-    function setTempo(i) {
-      const nome = partidos[i];
-      const min = parseInt(document.getElementById(`min-${i}`).value) || 0;
-      if (!estados[nome]) estados[nome] = { tempo:0, tempoInicial:0, rodando:false, timer:null };
-
-      estados[nome].tempoInicial = min * 60;
-      estados[nome].tempo = estados[nome].tempoInicial;
-      atualizarFirebase(nome, estados[nome].tempo, false);
-      const el = document.getElementById(`tempo-${i}`);
-      if (el) el.textContent = formatarTempo(estados[nome].tempo);
+    window.setTempo=function(i){
+      const nome=partidos[i];
+      const min=parseInt(document.getElementById(`min-${i}`).value)||0;
+      estados[nome].tempoInicial=min*60;
+      estados[nome].tempo=estados[nome].tempoInicial;
+      estados[nome].rodando=false;
+      atualizarFirebase(nome);
+      document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
     }
 
-    function play(i) {
-      const nome = partidos[i];
-      const estado = estados[nome];
-      if (!estado) return;
-      if (estado.rodando) return;
-      if (estado.tempo <= 0) return; // não inicia se sem tempo
-
-      estado.rodando = true;
-      atualizarFirebase(nome, estado.tempo, true);
-
-      estado.timer = setInterval(() => {
-        if (estado.tempo > 0) {
-          estado.tempo--;
-          atualizarFirebase(nome, estado.tempo, true);
-          const el = document.getElementById(`tempo-${i}`);
-          if (el) el.textContent = formatarTempo(estado.tempo);
+    window.play=function(i){
+      const nome=partidos[i];
+      if(estados[nome].rodando || estados[nome].tempo<=0) return;
+      estados[nome].rodando=true;
+      atualizarFirebase(nome);
+      estados[nome].timer=setInterval(()=>{
+        if(estados[nome].tempo>0){
+          estados[nome].tempo--;
+          atualizarFirebase(nome);
+          document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
         } else {
-          clearInterval(estado.timer);
-          estado.rodando = false;
-          atualizarFirebase(nome, 0, false);
+          clearInterval(estados[nome].timer);
+          estados[nome].rodando=false;
+          atualizarFirebase(nome);
         }
-      }, 1000);
+      },1000);
     }
 
-    function pause(i) {
-      const nome = partidos[i];
-      const estado = estados[nome];
-      if (!estado) return;
-      estado.rodando = false;
-      clearInterval(estado.timer);
-      atualizarFirebase(nome, estado.tempo, false);
+    window.pause=function(i){
+      const nome=partidos[i];
+      estados[nome].rodando=false;
+      clearInterval(estados[nome].timer);
+      atualizarFirebase(nome);
     }
 
-    function resetTempo(i) {
-      const nome = partidos[i];
-      const estado = estados[nome];
-      if (!estado) return;
-      estado.rodando = false;
-      clearInterval(estado.timer);
-      estado.tempo = estado.tempoInicial || 0;
-      atualizarFirebase(nome, estado.tempo, false);
-      const el = document.getElementById(`tempo-${i}`);
-      if (el) el.textContent = formatarTempo(estado.tempo);
+    window.resetTempo=function(i){
+      const nome=partidos[i];
+      estados[nome].rodando=false;
+      clearInterval(estados[nome].timer);
+      estados[nome].tempo=estados[nome].tempoInicial||0;
+      atualizarFirebase(nome);
+      document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
     }
 
-    function adicionarPartido() {
-      const novoNome = `Partido ${partidos.length + 1}`;
-      partidos.push(novoNome);
-      estados[novoNome] = { tempo: 0, tempoInicial: 0, rodando: false, timer: null };
+    window.adicionarPartido=function(){
+      const nome=`Partido ${partidos.length+1}`;
+      partidos.push(nome);
+      estados[nome]={tempo:0,tempoInicial:0,rodando:false,timer:null};
+      set(ref(db,'nomes/'+nome),nome);
       criarInterface();
-      // opcional: registra no firebase nomes (se disponível)
-      if (setFunc && refFunc) {
-        try { setFunc(refFunc('nomes/' + novoNome), true); } catch(e){ console.warn(e); }
-      }
     }
 
-    function removerPartido(i) {
-      const nome = partidos[i];
-      if (!nome) return;
-      // cancela timer se houver
-      if (estados[nome] && estados[nome].timer) clearInterval(estados[nome].timer);
-      partidos.splice(i, 1);
+    window.removerPartido=function(i){
+      const nome=partidos[i];
+      clearInterval(estados[nome].timer);
+      remove(ref(db,'tempos/'+nome));
+      remove(ref(db,'nomes/'+nome));
+      partidos.splice(i,1);
       delete estados[nome];
-      if (removeFunc && refFunc) {
-        try {
-          removeFunc(refFunc('tempos/' + nome));
-          removeFunc(refFunc('nomes/' + nome));
-        } catch(e) { console.warn(e); }
-      }
       criarInterface();
     }
 
-    function resetarTudo() {
-      if (!confirm("Tem certeza que deseja limpar a visualização pública?")) return;
-      if (removeFunc && refFunc) {
-        try {
-          removeFunc(refFunc('tempos'));
-          removeFunc(refFunc('nomes'));
-        } catch(e) { console.warn(e); }
-      }
-      // cancelar timers e limpar estado
-      partidasParaLimpar = Object.keys(estados);
-      partidasParaLimpar.forEach(n => { if (estados[n].timer) clearInterval(estados[n].timer); });
-      partidos = [];
-      for (const k in estados) delete estados[k];
-      document.getElementById('grade').innerHTML = '';
+    window.resetarTudo=function(){
+      if(!confirm("Confirma limpar todos os tempos?")) return;
+      remove(ref(db,'tempos'));
+      remove(ref(db,'nomes'));
+      partidos.forEach(n=>clearInterval(estados[n].timer));
+      partidos=[]; for(const k in estados) delete estados[k];
+      criarInterface();
     }
 
-    // Inicialização
-    partidos = ["Partido 1", "Partido 2", "Partido 3"];
-    partidos.forEach(nome => {
-      estados[nome] = { tempo: 0, tempoInicial: 0, rodando: false, timer: null };
-    });
+    // Inicializa
+    partidos=['Partido 1','Partido 2','Partido 3'];
+    partidos.forEach(n=>estados[n]={tempo:0,tempoInicial:0,rodando:false,timer:null});
     criarInterface();
-
-    // expõe funções globalmente (para atributos onclick inline)
-    window.salvarNome = salvarNome;
-    window.setTempo = setTempo;
-    window.play = play;
-    window.pause = pause;
-    window.resetTempo = resetTempo;
-    window.adicionarPartido = adicionarPartido;
-    window.removerPartido = removerPartido;
-    window.resetarTudo = resetarTudo;
 
   </script>
 </body>
