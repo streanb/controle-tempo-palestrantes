@@ -1,202 +1,178 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin - Controle de Tempos</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; background: #f0f0f0; color: #222; }
-    h1 { margin-top: 0; margin-bottom: 20px; }
-    #grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
-    .cartao { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center; transition: background-color 0.3s; }
-    .cartao input[type="text"] { font-size:18px; font-weight:bold; width:100%; margin-bottom:12px; padding:6px 8px; border-radius:6px; border:1px solid #ccc; text-align:center; background:#fafafa; color:#333; }
-    .botoes-cima { display:flex; justify-content:space-between; width:100%; margin-bottom:12px; gap:8px; }
-    .botoes-cima input[type="number"] { width:80px; font-size:16px; padding:6px 8px; border-radius:6px; border:1px solid #ccc; background:#fafafa; color:#333; text-align:center; }
-    .botoes-cima button { flex:1; background:#e0e0e0; color:#000; border:none; border-radius:6px; font-weight:bold; cursor:pointer; transition:background-color .3s; padding:8px 12px; font-size:14px; }
-    .botoes-cima button:hover{ background:#d0d0d0; }
-    .botoes-baixo { display:flex; justify-content:center; gap:15px; margin-top:10px; width:100%; }
-    .botoes-baixo button { background:#444; color:#fff; border:none; border-radius:8px; font-size:18px; padding:10px 18px; cursor:pointer; font-weight:bold; box-shadow:0 2px 6px rgba(0,0,0,0.1); transition:background-color .3s; min-width:70px; }
-    .botoes-baixo button.pause { background:#666; }
-    .botoes-baixo button.reset { background:#999; }
-    .botoes-baixo button:hover { filter:brightness(1.1); }
-    .tempo-display { margin-top:12px; font-size:2rem; font-weight:bold; color:#333; text-align:center; width:100%; }
-    .top-controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
-    .top-controls button { padding:8px 16px; font-weight:bold; border-radius:8px; border:none; cursor:pointer; background:#ccc; color:#000; transition:background-color .3s; }
-    .top-controls button:hover{ background:#bbb; }
-    .cores { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-    .cores button { width:30px; height:30px; border:none; border-radius:4px; cursor:pointer; }
-    #titulo-container { margin-bottom:20px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    #titulo-container input { padding:6px 8px; font-size:16px; border-radius:6px; border:1px solid #ccc; flex:1; min-width:250px; }
-    #titulo-container button { padding:6px 12px; font-size:16px; font-weight:bold; border-radius:6px; cursor:pointer; border:none; background:#28a745; color:#fff; transition:background .3s; }
-    #titulo-container button:hover { background:#218838; }
-  </style>
+<meta charset="UTF-8">
+<title>Admin - Controle de Tempos</title>
+<style>
+  body { font-family: Arial; padding: 20px; background: #f0f0f0; color: #222; }
+  h2 { margin-top:0; }
+  #grade { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:16px; }
+  .cartao { background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+  input, button { margin-top:8px; padding:6px; font-size:14px; }
+  .botoes, .cores { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+  .cores button { width:24px; height:24px; border:none; cursor:pointer; border-radius:4px; }
+  .botoes button { flex:1; }
+</style>
 </head>
 <body>
-
-<h1 id="titulo-principal">Controle de Tempos Assembleia de Freguesia</h1>
-
-<div id="titulo-container">
-  <input type="text" id="input-titulo" placeholder="Digite novo título">
-  <button onclick="atualizarTitulo()">Atualizar Título</button>
-</div>
-
-<div class="top-controls">
-  <button onclick="adicionarPartido()">+ Adicionar Partido</button>
-  <button onclick="resetarTudo()">🔄 Reset Tudo</button>
-</div>
-
+<h2>Administração de Tempos</h2>
+<button onclick="adicionarPartido()">+ Adicionar Partido</button>
+<button onclick="resetarTudo()">🔄 Reset Tudo</button>
 <div id="grade"></div>
 
 <script type="module">
 import { db } from './firebase-config.js';
 import { ref, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// Estado
 let partidos = [];
 const estados = {};
+const grade = document.getElementById('grade');
 
-// Título
-const tituloRef = ref(db,'titulo');
-const inputTitulo = document.getElementById('input-titulo');
-const h1Titulo = document.getElementById('titulo-principal');
-onValue(tituloRef, snapshot => {
-  const valor = snapshot.val();
-  if(valor) {
-    h1Titulo.textContent = valor;
-    inputTitulo.value = valor;
-  }
-});
-window.atualizarTitulo = () => {
-  const novoTitulo = inputTitulo.value.trim();
-  if(!novoTitulo) return alert("O título não pode ficar vazio!");
-  set(tituloRef, novoTitulo);
-};
+// Função para formatar tempo
+function formatarTempo(seg){ const m=Math.floor(seg/60).toString().padStart(2,'0'); const s=(seg%60).toString().padStart(2,'0'); return `${m}:${s}`; }
 
-// Funções utilitárias
-function formatarTempo(seg) {
-  const m = Math.floor(seg/60).toString().padStart(2,'0');
-  const s = (seg%60).toString().padStart(2,'0');
-  return `${m}:${s}`;
-}
-
-// Atualiza Firebase
-function atualizarFirebase(nome, tempo, rodando) {
-  set(ref(db,'tempos/'+nome), { tempoRestante: tempo, rodando: rodando });
-}
-function atualizarCorFirebase(nome, cor) {
-  set(ref(db,'cores/'+nome), cor);
-}
-
-// Cria interface
-function criarInterface() {
-  const grade = document.getElementById('grade');
-  grade.innerHTML = '';
-  const coresDisponiveis = ['#007BFF','#28a745','#dc3545','#ffc107','#6f42c1','#fd7e14','#20c997','#17a2b8','#e83e8c','#343a40','#fd6f61','#adb5bd'];
-  
+// Criar interface dos cartões
+function criarInterface(){
+  grade.innerHTML='';
   partidos.forEach((nome,i)=>{
-    if(!estados[nome]) estados[nome]={ tempo:0, tempoInicial:0, rodando:false, timer:null };
-    const div = document.createElement('div');
+    if(!estados[nome]) estados[nome]={tempo:0,tempoInicial:0,rodando:false,timer:null};
+    const div=document.createElement('div');
     div.className='cartao';
     div.id='cartao-'+nome;
-
-    let coresHTML = '<div class="cores">';
-    coresDisponiveis.forEach(cor => {
-      coresHTML += `<button style="background:${cor}" onclick="atualizarCorFirebase('${nome}','${cor}')"></button>`;
-    });
-    coresHTML += '</div>';
-
-    div.innerHTML = `
-      <input type="text" id="nome-${i}" value="${nome}" onchange="salvarNome(${i})"/>
-      <div class="botoes-cima">
+    div.innerHTML=`
+      <input type="text" id="nome-${i}" value="${nome}" onchange="salvarNome(${i})" />
+      <div class="botoes">
         <input type="number" id="min-${i}" placeholder="Minutos" min="0">
-        <button onclick="setTempo(${i})">Definir Tempo</button>
+        <button onclick="setTempo(${i})">Definir</button>
         <button onclick="removerPartido(${i})">Remover</button>
       </div>
-      <div class="botoes-baixo">
+      <div class="botoes">
         <button onclick="play(${i})">▶️</button>
-        <button class="pause" onclick="pause(${i})">⏸️</button>
-        <button class="reset" onclick="resetTempo(${i})">Reset</button>
+        <button onclick="pause(${i})">⏸️</button>
+        <button onclick="resetTempo(${i})">🔄</button>
       </div>
-      <div class="tempo-display" id="tempo-${i}">${formatarTempo(estados[nome].tempo)}</div>
-      ${coresHTML}
+      <div class="tempo-display" id="tempo-${i}" style="margin-top:10px;font-weight:bold;">${formatarTempo(estados[nome].tempo)}</div>
+      <div class="cores">
+        <button style="background:#FF0000;" onclick="mudarCor('${nome}','#FF0000')"></button>
+        <button style="background:#00FF00;" onclick="mudarCor('${nome}','#00FF00')"></button>
+        <button style="background:#0000FF;" onclick="mudarCor('${nome}','#0000FF')"></button>
+        <button style="background:#FFFF00;" onclick="mudarCor('${nome}','#FFFF00')"></button>
+        <button style="background:#FF00FF;" onclick="mudarCor('${nome}','#FF00FF')"></button>
+        <button style="background:#00FFFF;" onclick="mudarCor('${nome}','#00FFFF')"></button>
+        <button style="background:#FFA500;" onclick="mudarCor('${nome}','#FFA500')"></button>
+        <button style="background:#800080;" onclick="mudarCor('${nome}','#800080')"></button>
+        <button style="background:#008000;" onclick="mudarCor('${nome}','#008000')"></button>
+        <button style="background:#FFC0CB;" onclick="mudarCor('${nome}','#FFC0CB')"></button>
+        <button style="background:#808080;" onclick="mudarCor('${nome}','#808080')"></button>
+        <button style="background:#000000;" onclick="mudarCor('${nome}','#000000')"></button>
+      </div>
     `;
     grade.appendChild(div);
   });
 }
 
-// Funções de tempo e nome
-window.salvarNome=(i)=>{
-  const novoNome = document.getElementById(`nome-${i}`).value.trim();
-  const nomeAntigo = partidos[i];
-  if(!novoNome){ alert("O nome não pode ficar vazio!"); document.getElementById(`nome-${i}`).value = nomeAntigo; return; }
-  partidos[i]=novoNome;
-  estados[novoNome]=estados[nomeAntigo]||{tempo:0,tempoInicial:0,rodando:false,timer:null};
-  delete estados[nomeAntigo];
-  set(ref(db,'nomes/'+novoNome),true);
-  remove(ref(db,'nomes/'+nomeAntigo));
-  criarInterface();
-};
+// Funções de tempo
+function atualizarFirebase(nome){
+  set(ref(db,'tempos/'+nome),{tempoRestante:estados[nome].tempo,rodando:estados[nome].rodando});
+  set(ref(db,'nomes/'+nome),nome);
+}
 
-window.setTempo=(i)=>{
+// Funções globais
+window.salvarNome=function(i){
+  const novo=document.getElementById(`nome-${i}`).value.trim();
+  const antigo=partidos[i];
+  if(!novo){ alert('Nome vazio!'); return; }
+  partidos[i]=novo;
+  estados[novo]=estados[antigo];
+  delete estados[antigo];
+  remove(ref(db,'nomes/'+antigo));
+  set(ref(db,'nomes/'+novo),novo);
+  criarInterface();
+}
+
+window.setTempo=function(i){
   const nome=partidos[i];
   const min=parseInt(document.getElementById(`min-${i}`).value)||0;
   estados[nome].tempoInicial=min*60;
   estados[nome].tempo=estados[nome].tempoInicial;
-  atualizarFirebase(nome,estados[nome].tempo,false);
+  estados[nome].rodando=false;
+  atualizarFirebase(nome);
   document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
-};
+}
 
-window.play=(i)=>{
-  const nome=partidos[i]; const e=estados[nome]; if(!e||e.rodando||e.tempo<=0)return;
-  e.rodando=true; atualizarFirebase(nome,e.tempo,true);
-  e.timer=setInterval(()=>{
-    if(e.tempo>0){ e.tempo--; atualizarFirebase(nome,e.tempo,true); document.getElementById(`tempo-${i}`).textContent=formatarTempo(e.tempo); }
-    else{ clearInterval(e.timer); e.rodando=false; atualizarFirebase(nome,0,false); }
+window.play=function(i){
+  const nome=partidos[i];
+  if(estados[nome].rodando || estados[nome].tempo<=0) return;
+  estados[nome].rodando=true;
+  atualizarFirebase(nome);
+  estados[nome].timer=setInterval(()=>{
+    if(estados[nome].tempo>0){
+      estados[nome].tempo--;
+      atualizarFirebase(nome);
+      document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
+    } else {
+      clearInterval(estados[nome].timer);
+      estados[nome].rodando=false;
+      atualizarFirebase(nome);
+    }
   },1000);
-};
+}
 
-window.pause=(i)=>{
-  const nome=partidos[i]; const e=estados[nome]; if(!e)return; e.rodando=false; clearInterval(e.timer); atualizarFirebase(nome,e.tempo,false);
-};
+window.pause=function(i){
+  const nome=partidos[i];
+  estados[nome].rodando=false;
+  clearInterval(estados[nome].timer);
+  atualizarFirebase(nome);
+}
 
-window.resetTempo=(i)=>{
-  const nome=partidos[i]; const e=estados[nome]; if(!e)return; e.rodando=false; clearInterval(e.timer); e.tempo=e.tempoInicial||0; atualizarFirebase(nome,e.tempo,false); document.getElementById(`tempo-${i}`).textContent=formatarTempo(e.tempo);
-};
+window.resetTempo=function(i){
+  const nome=partidos[i];
+  estados[nome].rodando=false;
+  clearInterval(estados[nome].timer);
+  estados[nome].tempo=estados[nome].tempoInicial||0;
+  atualizarFirebase(nome);
+  document.getElementById(`tempo-${i}`).textContent=formatarTempo(estados[nome].tempo);
+}
 
-window.adicionarPartido=()=>{
-  const novoNome=`Partido ${partidos.length+1}`;
-  partidos.push(novoNome);
-  estados[novoNome]={tempo:0,tempoInicial:0,rodando:false,timer:null};
-  set(ref(db,'nomes/'+novoNome),true);
+window.adicionarPartido=function(){
+  const nome=`Partido ${partidos.length+1}`;
+  partidos.push(nome);
+  estados[nome]={tempo:0,tempoInicial:0,rodando:false,timer:null};
+  set(ref(db,'nomes/'+nome),nome);
   criarInterface();
-};
+}
 
-window.removerPartido=(i)=>{
-  const nome=partidos[i]; if(!nome)return;
-  if(estados[nome]&&estados[nome].timer) clearInterval(estados[nome].timer);
+window.removerPartido=function(i){
+  const nome=partidos[i];
+  clearInterval(estados[nome].timer);
   remove(ref(db,'tempos/'+nome));
   remove(ref(db,'nomes/'+nome));
   remove(ref(db,'cores/'+nome));
   partidos.splice(i,1);
   delete estados[nome];
   criarInterface();
-};
+}
 
-window.resetarTudo=()=>{
-  if(!confirm("Tem certeza que deseja limpar a visualização pública?")) return;
-  partidos.forEach(n=>{
-    if(estados[n]&&estados[n].timer) clearInterval(estados[n].timer);
-    remove(ref(db,'tempos/'+n));
-    remove(ref(db,'nomes/'+n));
-    remove(ref(db,'cores/'+n));
-  });
-  partidos=[]; for(const k in estados) delete estados[k]; document.getElementById('grade').innerHTML='';
-};
+window.resetarTudo=function(){
+  if(!confirm("Confirma limpar todos os tempos?")) return;
+  remove(ref(db,'tempos'));
+  remove(ref(db,'nomes'));
+  remove(ref(db,'cores'));
+  partidos.forEach(n=>clearInterval(estados[n].timer));
+  partidos=[]; for(const k in estados) delete estados[k];
+  criarInterface();
+}
+
+// Função de cores
+window.mudarCor=function(nome,cor){
+  set(ref(db,'cores/'+nome),cor);
+}
 
 // Inicialização
-partidos = ["Partido 1","Partido 2","Partido 3"];
-partidos.forEach(nome=>estados[nome]={tempo:0,tempoInicial:0,rodando:false,timer:null});
+partidos=['Partido 1','Partido 2','Partido 3'];
+partidos.forEach(n=>estados[n]={tempo:0,tempoInicial:0,rodando:false,timer:null});
 criarInterface();
-</script>
 
+</script>
 </body>
 </html>
