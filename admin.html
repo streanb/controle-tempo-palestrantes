@@ -5,7 +5,8 @@
 <title>Admin - Controle de Tempos</title>
 <style>
   body { font-family: Arial; padding: 20px; background: #f0f0f0; color: #222; }
-  h2 { margin-top:0; }
+  h1 { margin-top:0; }
+  h2 { margin-top:8px; }
   #grade { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:16px; }
   .cartao { background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
   input, button { margin-top:8px; padding:6px; font-size:14px; }
@@ -15,6 +16,13 @@
 </style>
 </head>
 <body>
+
+<h1 id="titulo-principal">Controle de Tempos Assembleia de Freguesia</h1>
+<div style="margin-bottom:12px;">
+  <input type="text" id="input-titulo" placeholder="Digite novo título">
+  <button onclick="atualizarTitulo()">Atualizar Título</button>
+</div>
+
 <h2>Administração de Tempos</h2>
 <button onclick="adicionarPartido()">+ Adicionar Partido</button>
 <button onclick="resetarTudo()">🔄 Reset Tudo</button>
@@ -28,10 +36,30 @@ let partidos = [];
 const estados = {};
 const grade = document.getElementById('grade');
 
-// Função para formatar tempo
+// --- Função para título editável ---
+const h1Titulo = document.getElementById('titulo-principal');
+const inputTitulo = document.getElementById('input-titulo');
+const tituloRef = ref(db, 'titulo');
+
+// Puxar título do Firebase
+onValue(tituloRef, snapshot => {
+  const valor = snapshot.val();
+  if (valor) {
+    h1Titulo.textContent = valor;
+    inputTitulo.value = valor;
+  }
+});
+
+// Atualizar título no Firebase
+window.atualizarTitulo = () => {
+  const novoTitulo = inputTitulo.value.trim();
+  if (!novoTitulo) return alert("O título não pode ficar vazio!");
+  set(tituloRef, novoTitulo);
+}
+
+// --- Funções já existentes do seu admin ---
 function formatarTempo(seg){ const m=Math.floor(seg/60).toString().padStart(2,'0'); const s=(seg%60).toString().padStart(2,'0'); return `${m}:${s}`; }
 
-// Criar interface dos cartões
 function criarInterface(){
   grade.innerHTML='';
   partidos.forEach((nome,i)=>{
@@ -71,13 +99,12 @@ function criarInterface(){
   });
 }
 
-// Funções de tempo
+// --- Funções de tempo e cores ---
 function atualizarFirebase(nome){
   set(ref(db,'tempos/'+nome),{tempoRestante:estados[nome].tempo,rodando:estados[nome].rodando});
   set(ref(db,'nomes/'+nome),nome);
 }
 
-// Funções globais
 window.salvarNome=function(i){
   const novo=document.getElementById(`nome-${i}`).value.trim();
   const antigo=partidos[i];
@@ -163,7 +190,6 @@ window.resetarTudo=function(){
   criarInterface();
 }
 
-// Função de cores
 window.mudarCor=function(nome,cor){
   set(ref(db,'cores/'+nome),cor);
 }
