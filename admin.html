@@ -11,19 +11,13 @@
       background: #f0f0f0;
       color: #222;
     }
-
-    h2 {
-      margin-top: 0;
-      margin-bottom: 20px;
-    }
-
+    h2 { margin-top: 0; margin-bottom: 20px; }
     #grade {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       margin-top: 20px;
     }
-
     .cartao {
       background: #fff;
       border-radius: 12px;
@@ -33,7 +27,6 @@
       flex-direction: column;
       align-items: center;
     }
-
     .cartao input[type="text"] {
       font-size: 18px;
       font-weight: bold;
@@ -46,7 +39,6 @@
       background-color: #fafafa;
       color: #333;
     }
-
     .botoes-cima {
       display: flex;
       justify-content: space-between;
@@ -54,7 +46,6 @@
       margin-bottom: 12px;
       gap: 8px;
     }
-
     .botoes-cima input[type="number"] {
       width: 80px;
       font-size: 16px;
@@ -65,7 +56,6 @@
       color: #333;
       text-align: center;
     }
-
     .botoes-cima button {
       flex: 1;
       background-color: #e0e0e0;
@@ -78,11 +68,7 @@
       padding: 8px 12px;
       font-size: 14px;
     }
-
-    .botoes-cima button:hover {
-      background-color: #d0d0d0;
-    }
-
+    .botoes-cima button:hover { background-color: #d0d0d0; }
     .botoes-baixo {
       display: flex;
       justify-content: center;
@@ -90,7 +76,6 @@
       margin-top: 10px;
       width: 100%;
     }
-
     .botoes-baixo button {
       background-color: #444;
       color: white;
@@ -104,19 +89,9 @@
       transition: background-color 0.3s ease;
       min-width: 70px;
     }
-
-    .botoes-baixo button.pause {
-      background-color: #666;
-    }
-
-    .botoes-baixo button.reset {
-      background-color: #999;
-    }
-
-    .botoes-baixo button:hover {
-      filter: brightness(1.1);
-    }
-
+    .botoes-baixo button.pause { background-color: #666; }
+    .botoes-baixo button.reset { background-color: #999; }
+    .botoes-baixo button:hover { filter: brightness(1.1); }
     .tempo-display {
       margin-top: 12px;
       font-size: 2rem;
@@ -125,7 +100,6 @@
       text-align: center;
       width: 100%;
     }
-
     .top-controls {
       display: flex;
       gap: 10px;
@@ -133,7 +107,6 @@
       margin-bottom: 20px;
       align-items: center;
     }
-
     .top-controls button {
       padding: 8px 16px;
       font-weight: bold;
@@ -144,10 +117,7 @@
       color: #000;
       transition: background-color 0.3s ease;
     }
-
-    .top-controls button:hover {
-      background-color: #bbb;
-    }
+    .top-controls button:hover { background-color: #bbb; }
   </style>
 </head>
 <body>
@@ -160,14 +130,16 @@
 
   <div id="grade"></div>
 
-  <script type="module">
-    import { db } from './firebase-config.js';
-    import {
-      ref,
-      set,
-      onValue,
-      remove
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  <!-- IMPORTANDO FIREBASE (pode manter assim sem type="module") -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
+  <script src="./firebase-config.js"></script> <!-- Certifique-se de que exporta `db` no escopo global -->
+
+  <script>
+    // Se firebase-config.js não coloca db no window, faça:
+    // window.db = db;
+
+    const { ref, set, onValue, remove } = window.firebase.database;
 
     let partidos = [];
     const estados = {};
@@ -186,7 +158,9 @@
     }
 
     function atualizarNomeFirebase(nomeOriginal, novoNome) {
-      set(ref(db, 'nomes/' + nomeOriginal), novoNome);
+      // Apenas salva o nome novo
+      remove(ref(db, 'nomes/' + nomeOriginal));
+      set(ref(db, 'nomes/' + novoNome), true);
     }
 
     function criarInterface() {
@@ -197,24 +171,26 @@
         const div = document.createElement('div');
         div.className = 'cartao';
         div.innerHTML = `
-          <input type="text" id="nome-${i}" value="${nome}" onchange="window.salvarNome(${i})" />
+          <input type="text" id="nome-${i}" value="${nome}" onchange="salvarNome(${i})" />
           <div class="botoes-cima">
             <input type="number" id="min-${i}" placeholder="Minutos" min="0">
-            <button onclick="window.setTempo(${i})">Definir Tempo</button>
-            <button onclick="window.removerPartido(${i})">Remover</button>
+            <button onclick="setTempo(${i})">Definir Tempo</button>
+            <button onclick="removerPartido(${i})">Remover</button>
           </div>
           <div class="botoes-baixo">
-            <button onclick="window.play(${i})">▶️</button>
-            <button class="pause" onclick="window.pause(${i})">⏸️</button>
-            <button class="reset" onclick="window.resetTempo(${i})">Reset</button>
+            <button onclick="play(${i})">▶️</button>
+            <button class="pause" onclick="pause(${i})">⏸️</button>
+            <button class="reset" onclick="resetTempo(${i})">Reset</button>
           </div>
-          <div class="tempo-display" id="tempo-${i}">00:00</div>
+          <div class="tempo-display" id="tempo-${i}">
+            ${formatarTempo(estados[nome].tempo)}
+          </div>
         `;
         grade.appendChild(div);
       });
     }
 
-    window.salvarNome = (i) => {
+    function salvarNome(i) {
       const novoNome = document.getElementById(`nome-${i}`).value.trim();
       const nomeAntigo = partidos[i];
 
@@ -224,95 +200,118 @@
         return;
       }
 
+      // Atualiza o array
       partidos[i] = novoNome;
 
+      // Atualiza Firebase
       atualizarNomeFirebase(nomeAntigo, novoNome);
 
+      // Migra estado
       estados[novoNome] = estados[nomeAntigo];
       delete estados[nomeAntigo];
 
       criarInterface();
-    };
+    }
 
-    window.setTempo = (i) => {
+    function setTempo(i) {
       const nome = partidos[i];
       const min = parseInt(document.getElementById(`min-${i}`).value) || 0;
+      if (!estados[nome]) estados[nome] = { tempo: 0, tempoInicial: 0, rodando: false, timer: null };
 
       estados[nome].tempoInicial = min * 60;
       estados[nome].tempo = estados[nome].tempoInicial;
 
       atualizarFirebase(nome, estados[nome].tempo, false);
       document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
-    };
+    }
 
-    window.play = (i) => {
+    function play(i) {
       const nome = partidos[i];
-      if (estados[nome].rodando) return;
+      const estado = estados[nome];
+      if (!estado || estado.rodando) return;
+      if (estado.tempo <= 0) return;
 
-      estados[nome].rodando = true;
-      atualizarFirebase(nome, estados[nome].tempo, true);
+      estado.rodando = true;
+      atualizarFirebase(nome, estado.tempo, true);
 
-      estados[nome].timer = setInterval(() => {
-        if (estados[nome].tempo > 0) {
-          estados[nome].tempo--;
-          atualizarFirebase(nome, estados[nome].tempo, true);
-          document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
+      estado.timer = setInterval(() => {
+        if (estado.tempo > 0) {
+          estado.tempo--;
+          atualizarFirebase(nome, estado.tempo, true);
+          document.getElementById(`tempo-${i}`).textContent = formatarTempo(estado.tempo);
         } else {
-          clearInterval(estados[nome].timer);
-          estados[nome].rodando = false;
+          clearInterval(estado.timer);
+          estado.rodando = false;
           atualizarFirebase(nome, 0, false);
         }
       }, 1000);
-    };
+    }
 
-    window.pause = (i) => {
+    function pause(i) {
       const nome = partidos[i];
-      estados[nome].rodando = false;
-      clearInterval(estados[nome].timer);
-      atualizarFirebase(nome, estados[nome].tempo, false);
-    };
+      const estado = estados[nome];
+      if (!estado) return;
 
-    window.resetTempo = (i) => {
+      estado.rodando = false;
+      clearInterval(estado.timer);
+      atualizarFirebase(nome, estado.tempo, false);
+    }
+
+    function resetTempo(i) {
       const nome = partidos[i];
-      estados[nome].rodando = false;
-      clearInterval(estados[nome].timer);
+      const estado = estados[nome];
+      if (!estado) return;
 
-      estados[nome].tempo = estados[nome].tempoInicial || 0;
+      estado.rodando = false;
+      clearInterval(estado.timer);
+      estado.tempo = estado.tempoInicial || 0;
 
-      atualizarFirebase(nome, estados[nome].tempo, false);
-      document.getElementById(`tempo-${i}`).textContent = formatarTempo(estados[nome].tempo);
-    };
+      atualizarFirebase(nome, estado.tempo, false);
+      document.getElementById(`tempo-${i}`).textContent = formatarTempo(estado.tempo);
+    }
 
-    window.adicionarPartido = () => {
+    function adicionarPartido() {
       const novoNome = `Partido ${partidos.length + 1}`;
       partidos.push(novoNome);
       estados[novoNome] = { tempo: 0, tempoInicial: 0, rodando: false, timer: null };
       criarInterface();
-    };
+    }
 
-    window.removerPartido = (i) => {
+    function removerPartido(i) {
       const nome = partidos[i];
       partidos.splice(i, 1);
       delete estados[nome];
       remove(ref(db, 'tempos/' + nome));
       remove(ref(db, 'nomes/' + nome));
       criarInterface();
-    };
+    }
 
-    window.resetarTudo = () => {
+    function resetarTudo() {
       if (confirm("Tem certeza que deseja limpar a visualização pública?")) {
         remove(ref(db, 'tempos'));
         remove(ref(db, 'nomes'));
         partidos = [];
         document.getElementById('grade').innerHTML = '';
       }
-    };
+    }
 
+    // Inicialização
     partidos = ["Partido 1", "Partido 2", "Partido 3"];
     partidos.forEach(nome => {
       estados[nome] = { tempo: 0, tempoInicial: 0, rodando: false, timer: null };
     });
     criarInterface();
+
+    // Deixar funções acessíveis ao onclick
+    window.salvarNome = salvarNome;
+    window.setTempo = setTempo;
+    window.play = play;
+    window.pause = pause;
+    window.resetTempo = resetTempo;
+    window.adicionarPartido = adicionarPartido;
+    window.removerPartido = removerPartido;
+    window.resetarTudo = resetarTudo;
+
   </script>
 </body>
 </html>
