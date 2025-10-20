@@ -54,17 +54,18 @@ function criarInterface(){
       <div class="tempo-display" id="tempo-${i}" style="margin-top:10px;font-weight:bold;">${formatarTempo(estados[nome].tempo)}</div>
       <div class="cores">
         <button style="background:#007BFF;" onclick="selecionarCor('#007BFF')"></button>
-  <button style="background:#28a745;" onclick="selecionarCor('#28a745')"></button>
-  <button style="background:#dc3545;" onclick="selecionarCor('#dc3545')"></button>
-  <button style="background:#ffc107;" onclick="selecionarCor('#ffc107')"></button>
-  <button style="background:#6f42c1;" onclick="selecionarCor('#6f42c1')"></button>
-  <button style="background:#fd7e14;" onclick="selecionarCor('#fd7e14')"></button>
-  <button style="background:#20c997;" onclick="selecionarCor('#20c997')"></button>
-  <button style="background:#17a2b8;" onclick="selecionarCor('#17a2b8')"></button>
-  <button style="background:#e83e8c;" onclick="selecionarCor('#e83e8c')"></button>
-  <button style="background:#343a40;" onclick="selecionarCor('#343a40')"></button>
-  <button style="background:#fd6f61;" onclick="selecionarCor('#fd6f61')"></button>
-  <button style="background:#adb5bd;" onclick="selecionarCor('#adb5bd')"></button>
+  <button style="background:#FF0000;" onclick="mudarCor('${nome}','#FF0000')"></button>
+        <button style="background:#00FF00;" onclick="mudarCor('${nome}','#00FF00')"></button>
+        <button style="background:#0000FF;" onclick="mudarCor('${nome}','#0000FF')"></button>
+        <button style="background:#FFFF00;" onclick="mudarCor('${nome}','#FFFF00')"></button>
+        <button style="background:#FF00FF;" onclick="mudarCor('${nome}','#FF00FF')"></button>
+        <button style="background:#00FFFF;" onclick="mudarCor('${nome}','#00FFFF')"></button>
+        <button style="background:#FFA500;" onclick="mudarCor('${nome}','#FFA500')"></button>
+        <button style="background:#800080;" onclick="mudarCor('${nome}','#800080')"></button>
+        <button style="background:#008000;" onclick="mudarCor('${nome}','#008000')"></button>
+        <button style="background:#FFC0CB;" onclick="mudarCor('${nome}','#FFC0CB')"></button>
+        <button style="background:#808080;" onclick="mudarCor('${nome}','#808080')"></button>
+        <button style="background:#000000;" onclick="mudarCor('${nome}','#000000')"></button>
       </div>
     `;
     grade.appendChild(div);
